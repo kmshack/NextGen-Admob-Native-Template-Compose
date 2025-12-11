@@ -1,0 +1,120 @@
+package com.soosu.nextgen.admobnative
+
+import android.annotation.SuppressLint
+import android.graphics.drawable.GradientDrawable
+import android.util.Log
+import android.view.View
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.viewinterop.AndroidViewBinding
+import androidx.core.graphics.ColorUtils
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+import com.soosu.nextgen.admobnative.databinding.GntAdMediumTemplateViewBinding
+
+@SuppressLint("SetTextI18n")
+@Composable
+fun NativeAdMediumBox(
+    nativeAd: NativeAd?,
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    textColor: Color = MaterialTheme.colorScheme.onBackground
+) {
+
+    Box(modifier = modifier) {
+
+        if (nativeAd != null) {
+            val bgColor = backgroundColor.toArgb()
+            val txtColor = textColor.toArgb()
+
+            AndroidViewBinding(
+                factory = GntAdMediumTemplateViewBinding::inflate,
+            ) {
+
+                val adView = nativeAdView.also { adView ->
+                    adView.adChoicesView = adChoice
+                    adView.callToActionView = background
+                    adView.headlineView = primary
+                    adView.iconView = icon
+                    adView.bodyView = description
+                }
+
+                background.setBackgroundColor(bgColor)
+                secondary.setTextColor(txtColor)
+                primary.setTextColor(txtColor)
+                description.setTextColor(txtColor)
+                cta.setTextColor(txtColor)
+                arrow.setColorFilter(txtColor)
+
+                // Set AD badge colors (harmonize with other text)
+                ad.setTextColor(txtColor)
+                ad.background = GradientDrawable().apply {
+                    setColor(ColorUtils.setAlphaComponent(txtColor, 38))
+                    cornerRadius = 6f * ad.context.resources.displayMetrics.density
+                }
+
+
+                if (!nativeAd.advertiser.isNullOrEmpty()) {
+                    secondary.text = " ⋅ ${nativeAd.advertiser}"
+                } else if (!nativeAd.store.isNullOrEmpty()) {
+                    secondary.text = " ⋅ ${nativeAd.store}"
+                } else {
+                    secondary.text = " ⋅⋅⋅"
+                }
+
+                nativeAd.headline?.let { headline ->
+                    primary.text = headline
+                }
+
+                nativeAd.callToAction?.let { callToAction ->
+                    cta.text = callToAction
+                }
+
+                nativeAd.icon?.drawable?.let { drawable ->
+                    iconContainer.visibility = View.VISIBLE
+                    icon.visibility = View.VISIBLE
+                    icon.setImageDrawable(drawable)
+                } ?: run {
+                    iconContainer.visibility = View.GONE
+                }
+
+                nativeAd.body?.let { body ->
+                    description.text = body
+                    description.visibility = View.VISIBLE
+                } ?: run {
+                    description.visibility = View.GONE
+                }
+
+                // Set media content (video or image)
+                nativeAd.mediaContent?.let { mediaContent ->
+                    Log.d(
+                        "NativeAdMediumBox",
+                        "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
+                    )
+                    adMedia.mediaContent = mediaContent
+                    adMedia.post {
+                        val width = adMedia.width
+                        if (width > 0 && mediaContent.aspectRatio > 0) {
+                            val height = (width / mediaContent.aspectRatio).toInt()
+                            adMedia.layoutParams = adMedia.layoutParams.apply {
+                                this.height = height
+                            }
+                        }
+                    }
+                    adMedia.visibility = View.VISIBLE
+                    adImageContainer.visibility = View.VISIBLE
+                } ?: run {
+                    adMedia.visibility = View.GONE
+                    adImageContainer.visibility = View.GONE
+                }
+
+                adView.registerNativeAd(nativeAd, adMedia)
+            }
+
+        }
+    }
+
+}

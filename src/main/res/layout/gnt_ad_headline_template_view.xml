@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/native_ad_view"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    tools:ignore="ResourceName">
+
+    <FrameLayout
+        android:id="@+id/background"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:clickable="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/ad"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/ad_badge_background"
+                android:includeFontPadding="false"
+                android:paddingStart="4dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="2dp"
+                android:text="AD"
+                android:textColor="#666"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/primary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="4dp"
+                android:ellipsize="end"
+                android:includeFontPadding="true"
+                android:maxWidth="200dp"
+                android:maxLines="1"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="primary" />
+
+            <TextView
+                android:id="@+id/bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:alpha="0.3"
+                android:ellipsize="end"
+                android:includeFontPadding="true"
+                android:maxLines="1"
+                android:text="|"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/cta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="true"
+                android:maxLines="1"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="download" />
+
+            <ImageView
+                android:id="@+id/arrow"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/round_chevron_right_24"
+                android:tint="#1976D2" />
+
+        </LinearLayout>
+
+        <com.google.android.libraries.ads.mobile.sdk.common.AdChoicesView
+            android:id="@+id/adChoice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="4dp" />
+
+    </FrameLayout>
+</com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView>

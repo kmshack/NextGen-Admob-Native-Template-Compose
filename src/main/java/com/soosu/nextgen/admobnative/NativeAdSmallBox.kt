@@ -1,0 +1,96 @@
+package com.soosu.nextgen.admobnative
+
+import android.annotation.SuppressLint
+import android.graphics.drawable.GradientDrawable
+import android.view.View
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.viewinterop.AndroidViewBinding
+import androidx.core.graphics.ColorUtils
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+import com.soosu.nextgen.admobnative.databinding.GntAdSmallTemplateViewBinding
+
+@SuppressLint("SetTextI18n")
+@Composable
+fun NativeAdSmallBox(
+    nativeAd: NativeAd?,
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    textColor: Color = MaterialTheme.colorScheme.onBackground
+) {
+
+    Box(modifier = modifier) {
+
+        if (nativeAd != null) {
+            val bgColor = backgroundColor.toArgb()
+            val txtColor = textColor.toArgb()
+
+            AndroidViewBinding(
+                factory = GntAdSmallTemplateViewBinding::inflate,
+            ) {
+
+                val adView = nativeAdView.also { adView ->
+                    adView.adChoicesView = adChoice
+                    adView.callToActionView = background
+                    adView.headlineView = primary
+                    adView.iconView = icon
+                }
+
+                background.setBackgroundColor(bgColor)
+                secondary.setTextColor(txtColor)
+                primary.setTextColor(txtColor)
+                cta.setTextColor(txtColor)
+                arrow.setColorFilter(txtColor)
+
+                // Set AD badge colors (harmonize with other text)
+                ad.setTextColor(txtColor)
+                ad.background = GradientDrawable().apply {
+                    setColor(ColorUtils.setAlphaComponent(txtColor, 38))
+                    cornerRadius = 6f * ad.context.resources.displayMetrics.density
+                }
+
+
+                if (!nativeAd.advertiser.isNullOrEmpty()) {
+                    secondary.text = " ⋅ ${nativeAd.advertiser}"
+                } else if (!nativeAd.store.isNullOrEmpty()) {
+                    secondary.text = " ⋅ ${nativeAd.store}"
+                } else {
+                    secondary.text = " ⋅⋅⋅"
+                }
+
+
+                nativeAd.headline?.let { headline ->
+                    primary.text = headline
+                }
+
+                nativeAd.callToAction?.let { callToAction ->
+                    cta.text = callToAction
+                }
+
+                nativeAd.icon?.drawable?.let { drawable ->
+                    iconContainer.visibility = View.VISIBLE
+                    icon.visibility = View.VISIBLE
+                    icon.setImageDrawable(drawable)
+                } ?: run {
+                    iconContainer.visibility = View.GONE
+                }
+
+                // Set media content for image display
+                nativeAd.mediaContent?.let { mediaContent ->
+                    // Use icon from mediaContent if available
+                    adImageContainer.visibility = View.VISIBLE
+                } ?: run {
+                    adImageContainer.visibility = View.GONE
+                }
+
+                adView.registerNativeAd(nativeAd, null)
+            }
+
+        }
+    }
+
+}
