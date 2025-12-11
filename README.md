@@ -471,6 +471,10 @@ NativeAdAutoColorWrapper(
 
 ## Migration from Legacy SDK
 
+> **Looking for Legacy SDK?**
+> If you're using the legacy Google Play Services Ads SDK (`com.google.android.gms:play-services-ads`), please use our legacy library instead:
+> **[Admob-Native-Template-Compose](https://github.com/kmshack/Admob-Native-Template-Compose)**
+
 If you're migrating from the legacy Google Play Services Ads SDK, here are the key changes:
 
 ### SDK Dependency
