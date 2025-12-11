@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Admob-Native-Template-Compose"
+rootProject.name = "NextGen-Admob-Native-Template-Compose"
 include(":sample")
