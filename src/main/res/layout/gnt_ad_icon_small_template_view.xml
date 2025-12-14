@@ -58,6 +58,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <TextView
@@ -98,7 +99,7 @@
                         android:id="@+id/primary"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="5dp"
+                        android:layout_marginTop="2dp"
                         android:ellipsize="end"
                         android:includeFontPadding="false"
                         android:lineSpacingMultiplier="0.9"
@@ -116,11 +117,8 @@
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="18dp"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginStart="6dp"
                     android:layout_marginEnd="4dp"
-                    android:clickable="true"
-                    android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal" />
 
