@@ -91,16 +91,6 @@ dependencies {
 
 ### 1. Initialize AdMob (Next-Gen SDK)
 
-Add your AdMob App ID to `AndroidManifest.xml`:
-
-```xml
-<application>
-    <meta-data
-        android:name="com.google.android.gms.ads.APPLICATION_ID"
-        android:value="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"/>
-</application>
-```
-
 Initialize the SDK in your Application or Activity:
 
 ```kotlin
