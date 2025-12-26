@@ -43,8 +43,6 @@ fun NativeAdSmallBox(
                 background.setBackgroundColor(bgColor)
                 secondary.setTextColor(txtColor)
                 primary.setTextColor(txtColor)
-                cta.setTextColor(txtColor)
-                arrow.setColorFilter(txtColor)
 
                 // Set AD badge colors (harmonize with other text)
                 ad.setTextColor(txtColor)
@@ -67,10 +65,6 @@ fun NativeAdSmallBox(
                     primary.text = headline
                 }
 
-                nativeAd.callToAction?.let { callToAction ->
-                    cta.text = callToAction
-                }
-
                 nativeAd.icon?.drawable?.let { drawable ->
                     iconContainer.visibility = View.VISIBLE
                     icon.visibility = View.VISIBLE
@@ -81,8 +75,12 @@ fun NativeAdSmallBox(
 
                 // Set media content for image display
                 nativeAd.mediaContent?.let { mediaContent ->
-                    // Use icon from mediaContent if available
-                    adImageContainer.visibility = View.VISIBLE
+                    mediaContent.mainImage?.let { drawable ->
+                        adImageContainer.visibility = View.VISIBLE
+                        adImage.setImageDrawable(drawable)
+                    } ?: run {
+                        adImageContainer.visibility = View.GONE
+                    }
                 } ?: run {
                     adImageContainer.visibility = View.GONE
                 }
