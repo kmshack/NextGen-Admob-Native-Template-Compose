@@ -67,7 +67,7 @@ afterEvaluate {
 
                 groupId = "com.github.kmshack"
                 artifactId = "nextgen-admob-native-template-compose"
-                version = "1.0.5"
+                version = "1.0.6"
 
                 pom {
                     name.set("NextGen Admob Native Template Compose")

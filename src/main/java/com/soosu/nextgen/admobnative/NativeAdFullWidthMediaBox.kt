@@ -81,12 +81,12 @@ fun NativeAdFullWidthMediaBox(
                 }
 
                 // Set advertiser or store
-                if (!nativeAd.advertiser.isNullOrEmpty()) {
-                    secondary.text = nativeAd.advertiser
-                } else if (!nativeAd.store.isNullOrEmpty()) {
-                    secondary.text = nativeAd.store
-                } else {
-                    secondary.visibility = View.GONE
+                secondary.text = when {
+                    !nativeAd.body.isNullOrEmpty() -> nativeAd.body
+                    !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
+                    !nativeAd.store.isNullOrEmpty() -> nativeAd.store
+                    !nativeAd.callToAction.isNullOrEmpty() -> nativeAd.callToAction
+                    else -> "ˑˑˑ"
                 }
 
                 // Set call to action

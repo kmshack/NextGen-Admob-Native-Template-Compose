@@ -95,6 +95,7 @@
                         android:id="@+id/secondary"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
                         android:layout_weight="1"
                         android:alpha="0.8"
                         android:gravity="center_vertical"
@@ -103,7 +104,7 @@
                         android:singleLine="true"
                         android:textAlignment="viewStart"
                         android:textColor="#555"
-                        android:textSize="11sp" />
+                        android:textSize="12sp" />
 
                 </LinearLayout>
 
@@ -120,7 +121,7 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="8dp"
-                android:maxWidth="140dp"
+                android:maxWidth="100dp"
                 android:visibility="gone"
                 app:cardBackgroundColor="#fff"
                 app:cardCornerRadius="6dp"
@@ -130,9 +131,9 @@
                 <ImageView
                     android:id="@+id/ad_image"
                     android:layout_width="wrap_content"
-                    android:layout_height="70dp"
+                    android:layout_height="60dp"
                     android:adjustViewBounds="true"
-                    android:maxWidth="140dp"
+                    android:maxWidth="100dp"
                     android:scaleType="centerCrop" />
 
             </androidx.cardview.widget.CardView>
