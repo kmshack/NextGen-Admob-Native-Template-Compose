@@ -1,6 +1,7 @@
 package com.soosu.nextgen.admobnative
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.util.Log
 import android.view.View
@@ -53,7 +54,7 @@ fun NativeAdLargeBox(
                 primary.setTextColor(txtColor)
                 description.setTextColor(txtColor)
                 cta.setTextColor(ctaTxtColor)
-                ctaContainer.setCardBackgroundColor(ctaBgColor)
+                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
 
                 // Set AD badge colors (harmonize with other text)
                 ad.setTextColor(txtColor)
@@ -133,10 +134,9 @@ fun NativeAdLargeBox(
                     price.visibility = View.VISIBLE
                 }
 
-                // Register after view is laid out
-                adView.post {
-                    adView.registerNativeAd(nativeAd, adMedia)
-                }
+
+                adView.registerNativeAd(nativeAd, adMedia)
+
             }
 
         }

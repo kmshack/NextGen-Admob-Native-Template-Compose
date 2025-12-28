@@ -40,7 +40,7 @@ fun NativeAdHeadlineBox(
                     binding.apply {
                         val adView = nativeAdView.also { adView ->
                             adView.adChoicesView = adChoice
-                            adView.callToActionView = background
+//                            adView.callToActionView = arrow
                             adView.headlineView = primary
                         }
 
@@ -58,10 +58,9 @@ fun NativeAdHeadlineBox(
                             cta.text = callToAction
                         }
 
-                        // Register after view is laid out
-                        adView.post {
-                            adView.registerNativeAd(nativeAd, null)
-                        }
+
+                        adView.registerNativeAd(nativeAd, null)
+
                     }
                 }
             )

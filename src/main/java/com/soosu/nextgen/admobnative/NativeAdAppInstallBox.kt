@@ -1,6 +1,7 @@
 package com.soosu.nextgen.admobnative
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.util.Log
 import android.view.View
@@ -79,7 +80,7 @@ fun NativeAdAppInstallBox(
                 }
 
                 // Set background color
-                background.setCardBackgroundColor(bgColor)
+                background.backgroundTintList = ColorStateList.valueOf(bgColor)
 
                 // Set text colors
                 primary.setTextColor(txtColor)
@@ -88,7 +89,7 @@ fun NativeAdAppInstallBox(
                 ratingText.setTextColor(ColorUtils.blendARGB(txtColor, bgColor, 0.4f))
 
                 // Configure CTA button
-                ctaContainer.setCardBackgroundColor(ctaBgColor)
+                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
                 cta.setTextColor(ctaTxtColor)
 
                 // Set AD badge colors (harmonize with other text)
@@ -181,10 +182,8 @@ fun NativeAdAppInstallBox(
                     adImageContainer.visibility = View.GONE
                 }
 
-                // Register after view is laid out
-                adView.post {
-                    adView.registerNativeAd(nativeAd, adMedia)
-                }
+                adView.registerNativeAd(nativeAd, adMedia)
+
             }
 
         }

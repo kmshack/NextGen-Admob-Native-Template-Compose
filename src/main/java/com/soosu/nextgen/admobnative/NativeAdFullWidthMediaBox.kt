@@ -1,6 +1,7 @@
 package com.soosu.nextgen.admobnative
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.graphics.LinearGradient
 import android.graphics.Shader
 import android.graphics.drawable.GradientDrawable
@@ -64,7 +65,7 @@ fun NativeAdFullWidthMediaBox(
                 }
 
                 // Configure CTA button colors
-                ctaContainer.setCardBackgroundColor(ctaBgColor)
+                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
                 cta.setTextColor(ctaTxtColor)
 
                 // Set headline
@@ -126,10 +127,8 @@ fun NativeAdFullWidthMediaBox(
                     fallbackContainer.visibility = View.VISIBLE
                 }
 
-                // Register after view is laid out
-                adView.post {
-                    adView.registerNativeAd(nativeAd, adMedia)
-                }
+                adView.registerNativeAd(nativeAd, adMedia)
+
             }
 
         }

@@ -36,7 +36,7 @@ fun NativeAdMediumBox(
 
                 val adView = nativeAdView.also { adView ->
                     adView.adChoicesView = adChoice
-                    adView.callToActionView = background
+//                    adView.callToActionView = background
                     adView.headlineView = primary
                     adView.iconView = icon
                     adView.bodyView = description
@@ -109,10 +109,9 @@ fun NativeAdMediumBox(
                     adMedia.visibility = View.GONE
                     adImageContainer.visibility = View.GONE
                 }
-                // Register after view is laid out
-                adView.post {
-                    adView.registerNativeAd(nativeAd, adMedia)
-                }
+
+                adView.registerNativeAd(nativeAd, adMedia)
+
             }
 
         }

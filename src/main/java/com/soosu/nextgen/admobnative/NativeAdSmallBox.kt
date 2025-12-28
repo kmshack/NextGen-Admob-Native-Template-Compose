@@ -40,13 +40,11 @@ fun NativeAdSmallBox(
                     val binding = GntAdSmallTemplateViewBinding.bind(view)
 
                     binding.apply {
-                        val adView = nativeAdView.also { adView ->
-                            adView.adChoicesView = adChoice
-                            adView.callToActionView = background
-                            adView.headlineView = primary
-                            adView.bodyView = secondary
-                            adView.iconView = icon
-                        }
+                        nativeAdView.adChoicesView = adChoice
+//                            adView.callToActionView = background
+                        nativeAdView.headlineView = primary
+                        nativeAdView.bodyView = secondary
+                        nativeAdView.iconView = icon
 
                         background.setBackgroundColor(bgColor)
                         secondary.setTextColor(txtColor)
@@ -92,9 +90,7 @@ fun NativeAdSmallBox(
                         }
 
                         // Register after view is laid out
-                        adView.post {
-                            adView.registerNativeAd(nativeAd, null)
-                        }
+                        nativeAdView.registerNativeAd(nativeAd, null)
                     }
                 }
             )

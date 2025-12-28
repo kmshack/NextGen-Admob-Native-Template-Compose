@@ -51,12 +51,6 @@ dependencies {
 
     // Palette for color extraction
     implementation("androidx.palette:palette-ktx:1.0.0")
-
-    // Core
-    implementation("androidx.core:core-ktx:1.15.0")
-
-    // CardView for XML layouts
-    implementation("androidx.cardview:cardview:1.0.0")
 }
 
 afterEvaluate {
@@ -67,7 +61,7 @@ afterEvaluate {
 
                 groupId = "com.github.kmshack"
                 artifactId = "nextgen-admob-native-template-compose"
-                version = "1.1.2"
+                version = "1.1.3"
 
                 pom {
                     name.set("NextGen Admob Native Template Compose")
