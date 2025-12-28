@@ -37,6 +37,7 @@ fun NativeAdIconSmallBox(
                     adView.adChoicesView = adChoice
                     adView.callToActionView = background
                     adView.headlineView = primary
+                    adView.bodyView = secondary
                     adView.iconView = icon
                 }
 
@@ -72,7 +73,10 @@ fun NativeAdIconSmallBox(
                     iconContainer.visibility = View.GONE
                 }
 
-                adView.registerNativeAd(nativeAd, null)
+                // Register after view is laid out
+                adView.post {
+                    adView.registerNativeAd(nativeAd, null)
+                }
             }
 
         }

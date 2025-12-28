@@ -44,6 +44,7 @@ fun NativeAdSmallBox(
                             adView.adChoicesView = adChoice
                             adView.callToActionView = background
                             adView.headlineView = primary
+                            adView.bodyView = secondary
                             adView.iconView = icon
                         }
 

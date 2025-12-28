@@ -109,8 +109,10 @@ fun NativeAdMediumBox(
                     adMedia.visibility = View.GONE
                     adImageContainer.visibility = View.GONE
                 }
-
-                adView.registerNativeAd(nativeAd, adMedia)
+                // Register after view is laid out
+                adView.post {
+                    adView.registerNativeAd(nativeAd, adMedia)
+                }
             }
 
         }

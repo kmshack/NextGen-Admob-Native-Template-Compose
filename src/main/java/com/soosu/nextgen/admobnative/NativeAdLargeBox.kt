@@ -133,7 +133,10 @@ fun NativeAdLargeBox(
                     price.visibility = View.VISIBLE
                 }
 
-                adView.registerNativeAd(nativeAd, adMedia)
+                // Register after view is laid out
+                adView.post {
+                    adView.registerNativeAd(nativeAd, adMedia)
+                }
             }
 
         }
