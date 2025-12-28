@@ -8,7 +8,6 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +24,11 @@ import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdRequest
+import com.soosu.nextgen.admobnative.NativeAdAppInstallBox
 import com.soosu.nextgen.admobnative.NativeAdContentBox
+import com.soosu.nextgen.admobnative.NativeAdFullWidthMediaBox
+import com.soosu.nextgen.admobnative.NativeAdHeadlineBox
+import com.soosu.nextgen.admobnative.NativeAdIconSmallBox
 import com.soosu.nextgen.admobnative.NativeAdLargeBox
 import com.soosu.nextgen.admobnative.NativeAdMediumBox
 import com.soosu.nextgen.admobnative.NativeAdSmallBox
@@ -39,19 +42,33 @@ import com.soosu.nextgen.admobnative.NativeAdSmallBox
  */
 class AndroidViewSampleActivity : ComponentActivity() {
 
+    // CTR Optimized Templates
+    private var fullWidthMediaAd by mutableStateOf<NativeAd?>(null)
+    private var contentAd by mutableStateOf<NativeAd?>(null)
+    private var appInstallAd by mutableStateOf<NativeAd?>(null)
+
+    // Standard Templates
+    private var headlineAd by mutableStateOf<NativeAd?>(null)
     private var smallAd by mutableStateOf<NativeAd?>(null)
+    private var iconSmallAd by mutableStateOf<NativeAd?>(null)
     private var mediumAd by mutableStateOf<NativeAd?>(null)
     private var largeAd by mutableStateOf<NativeAd?>(null)
-    private var contentAd by mutableStateOf<NativeAd?>(null)
 
     private var loadedCount = 0
     private var errorCount = 0
+    private val totalAds = 8
 
     private lateinit var statusText: TextView
+
+    // Progress bars
+    private lateinit var fullWidthMediaAdProgress: ProgressBar
+    private lateinit var contentAdProgress: ProgressBar
+    private lateinit var appInstallAdProgress: ProgressBar
+    private lateinit var headlineAdProgress: ProgressBar
     private lateinit var smallAdProgress: ProgressBar
+    private lateinit var iconSmallAdProgress: ProgressBar
     private lateinit var mediumAdProgress: ProgressBar
     private lateinit var largeAdProgress: ProgressBar
-    private lateinit var contentAdProgress: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,10 +76,16 @@ class AndroidViewSampleActivity : ComponentActivity() {
 
         // Initialize views
         statusText = findViewById(R.id.statusText)
+
+        // Initialize progress bars
+        fullWidthMediaAdProgress = findViewById(R.id.fullWidthMediaAdProgress)
+        contentAdProgress = findViewById(R.id.contentAdProgress)
+        appInstallAdProgress = findViewById(R.id.appInstallAdProgress)
+        headlineAdProgress = findViewById(R.id.headlineAdProgress)
         smallAdProgress = findViewById(R.id.smallAdProgress)
+        iconSmallAdProgress = findViewById(R.id.iconSmallAdProgress)
         mediumAdProgress = findViewById(R.id.mediumAdProgress)
         largeAdProgress = findViewById(R.id.largeAdProgress)
-        contentAdProgress = findViewById(R.id.contentAdProgress)
 
         // Back button
         findViewById<ImageButton>(R.id.backButton).setOnClickListener {
@@ -77,52 +100,105 @@ class AndroidViewSampleActivity : ComponentActivity() {
     }
 
     private fun setupComposeViews() {
+        // Full Width Media Ad ComposeView (CTR+)
+        setupComposeView(R.id.fullWidthMediaAdComposeView) {
+            FullWidthMediaAdContent()
+        }
+
+        // Content Ad ComposeView (CTR+)
+        setupComposeView(R.id.contentAdComposeView) {
+            ContentAdContent()
+        }
+
+        // App Install Ad ComposeView (CTR+)
+        setupComposeView(R.id.appInstallAdComposeView) {
+            AppInstallAdContent()
+        }
+
+        // Headline Ad ComposeView
+        setupComposeView(R.id.headlineAdComposeView) {
+            HeadlineAdContent()
+        }
+
         // Small Ad ComposeView
-        findViewById<ComposeView>(R.id.smallAdComposeView).apply {
-            setViewTreeLifecycleOwner(this@AndroidViewSampleActivity)
-            setViewTreeSavedStateRegistryOwner(this@AndroidViewSampleActivity)
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                AdMobNativeSampleTheme {
-                    SmallAdContent()
-                }
-            }
+        setupComposeView(R.id.smallAdComposeView) {
+            SmallAdContent()
+        }
+
+        // Icon Small Ad ComposeView
+        setupComposeView(R.id.iconSmallAdComposeView) {
+            IconSmallAdContent()
         }
 
         // Medium Ad ComposeView
-        findViewById<ComposeView>(R.id.mediumAdComposeView).apply {
-            setViewTreeLifecycleOwner(this@AndroidViewSampleActivity)
-            setViewTreeSavedStateRegistryOwner(this@AndroidViewSampleActivity)
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                AdMobNativeSampleTheme {
-                    MediumAdContent()
-                }
-            }
+        setupComposeView(R.id.mediumAdComposeView) {
+            MediumAdContent()
         }
 
         // Large Ad ComposeView
-        findViewById<ComposeView>(R.id.largeAdComposeView).apply {
+        setupComposeView(R.id.largeAdComposeView) {
+            LargeAdContent()
+        }
+    }
+
+    private fun setupComposeView(viewId: Int, content: @Composable () -> Unit) {
+        findViewById<ComposeView>(viewId).apply {
             setViewTreeLifecycleOwner(this@AndroidViewSampleActivity)
             setViewTreeSavedStateRegistryOwner(this@AndroidViewSampleActivity)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AdMobNativeSampleTheme {
-                    LargeAdContent()
+                    content()
                 }
             }
         }
+    }
 
-        // Content Ad ComposeView
-        findViewById<ComposeView>(R.id.contentAdComposeView).apply {
-            setViewTreeLifecycleOwner(this@AndroidViewSampleActivity)
-            setViewTreeSavedStateRegistryOwner(this@AndroidViewSampleActivity)
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                AdMobNativeSampleTheme {
-                    ContentAdContent()
-                }
-            }
+    // CTR Optimized Templates
+    @Composable
+    private fun FullWidthMediaAdContent() {
+        fullWidthMediaAd?.let { ad ->
+            NativeAdFullWidthMediaBox(
+                nativeAd = ad,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+            )
+        }
+    }
+
+    @Composable
+    private fun ContentAdContent() {
+        contentAd?.let { ad ->
+            NativeAdContentBox(
+                nativeAd = ad,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+            )
+        }
+    }
+
+    @Composable
+    private fun AppInstallAdContent() {
+        appInstallAd?.let { ad ->
+            NativeAdAppInstallBox(
+                nativeAd = ad,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+            )
+        }
+    }
+
+    // Standard Templates
+    @Composable
+    private fun HeadlineAdContent() {
+        headlineAd?.let { ad ->
+            NativeAdHeadlineBox(
+                nativeAd = ad,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 
@@ -130,6 +206,18 @@ class AndroidViewSampleActivity : ComponentActivity() {
     private fun SmallAdContent() {
         smallAd?.let { ad ->
             NativeAdSmallBox(
+                nativeAd = ad,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+            )
+        }
+    }
+
+    @Composable
+    private fun IconSmallAdContent() {
+        iconSmallAd?.let { ad ->
+            NativeAdIconSmallBox(
                 nativeAd = ad,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -162,66 +250,102 @@ class AndroidViewSampleActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    private fun ContentAdContent() {
-        contentAd?.let { ad ->
-            NativeAdContentBox(
-                nativeAd = ad,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-            )
-        }
-    }
-
     private fun loadAds() {
         val testAdUnitId = "ca-app-pub-3940256099942544/2247696110"
 
-        // Load Small Ad
-        loadNativeAd(testAdUnitId) { ad, error ->
+        // Load Full Width Media Ad (CTR+)
+        loadNativeAd(testAdUnitId) { ad, _ ->
             if (ad != null) {
-                smallAd = ad
-                smallAdProgress.visibility = View.GONE
+                fullWidthMediaAd = ad
+                fullWidthMediaAdProgress.visibility = View.GONE
                 onAdLoaded()
             } else {
-                smallAdProgress.visibility = View.GONE
-                onAdError(error)
+                fullWidthMediaAdProgress.visibility = View.GONE
+                onAdError()
             }
         }
 
-        // Load Medium Ad
-        loadNativeAd(testAdUnitId) { ad, error ->
-            if (ad != null) {
-                mediumAd = ad
-                mediumAdProgress.visibility = View.GONE
-                onAdLoaded()
-            } else {
-                mediumAdProgress.visibility = View.GONE
-                onAdError(error)
-            }
-        }
-
-        // Load Large Ad
-        loadNativeAd(testAdUnitId) { ad, error ->
-            if (ad != null) {
-                largeAd = ad
-                largeAdProgress.visibility = View.GONE
-                onAdLoaded()
-            } else {
-                largeAdProgress.visibility = View.GONE
-                onAdError(error)
-            }
-        }
-
-        // Load Content Ad
-        loadNativeAd(testAdUnitId) { ad, error ->
+        // Load Content Ad (CTR+)
+        loadNativeAd(testAdUnitId) { ad, _ ->
             if (ad != null) {
                 contentAd = ad
                 contentAdProgress.visibility = View.GONE
                 onAdLoaded()
             } else {
                 contentAdProgress.visibility = View.GONE
-                onAdError(error)
+                onAdError()
+            }
+        }
+
+        // Load App Install Ad (CTR+)
+        loadNativeAd(testAdUnitId) { ad, _ ->
+            if (ad != null) {
+                appInstallAd = ad
+                appInstallAdProgress.visibility = View.GONE
+                onAdLoaded()
+            } else {
+                appInstallAdProgress.visibility = View.GONE
+                onAdError()
+            }
+        }
+
+        // Load Headline Ad
+        loadNativeAd(testAdUnitId) { ad, _ ->
+            if (ad != null) {
+                headlineAd = ad
+                headlineAdProgress.visibility = View.GONE
+                onAdLoaded()
+            } else {
+                headlineAdProgress.visibility = View.GONE
+                onAdError()
+            }
+        }
+
+        // Load Small Ad
+        loadNativeAd(testAdUnitId) { ad, _ ->
+            if (ad != null) {
+                smallAd = ad
+                smallAdProgress.visibility = View.GONE
+                onAdLoaded()
+            } else {
+                smallAdProgress.visibility = View.GONE
+                onAdError()
+            }
+        }
+
+        // Load Icon Small Ad
+        loadNativeAd(testAdUnitId) { ad, _ ->
+            if (ad != null) {
+                iconSmallAd = ad
+                iconSmallAdProgress.visibility = View.GONE
+                onAdLoaded()
+            } else {
+                iconSmallAdProgress.visibility = View.GONE
+                onAdError()
+            }
+        }
+
+        // Load Medium Ad
+        loadNativeAd(testAdUnitId) { ad, _ ->
+            if (ad != null) {
+                mediumAd = ad
+                mediumAdProgress.visibility = View.GONE
+                onAdLoaded()
+            } else {
+                mediumAdProgress.visibility = View.GONE
+                onAdError()
+            }
+        }
+
+        // Load Large Ad
+        loadNativeAd(testAdUnitId) { ad, _ ->
+            if (ad != null) {
+                largeAd = ad
+                largeAdProgress.visibility = View.GONE
+                onAdLoaded()
+            } else {
+                largeAdProgress.visibility = View.GONE
+                onAdError()
             }
         }
     }
@@ -234,11 +358,15 @@ class AndroidViewSampleActivity : ComponentActivity() {
 
         NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
             override fun onNativeAdLoaded(ad: NativeAd) {
-                callback(ad, null)
+                runOnUiThread {
+                    callback(ad, null)
+                }
             }
 
             override fun onAdFailedToLoad(error: LoadAdError) {
-                callback(null, error.message)
+                runOnUiThread {
+                    callback(null, error.message)
+                }
             }
         })
     }
@@ -248,20 +376,19 @@ class AndroidViewSampleActivity : ComponentActivity() {
         updateStatus()
     }
 
-    private fun onAdError(error: String?) {
+    private fun onAdError() {
         errorCount++
         updateStatus()
     }
 
     private fun updateStatus() {
-        val total = 4
         val completed = loadedCount + errorCount
         statusText.text = buildString {
-            append("Loaded: $loadedCount / $total")
+            append("Loaded: $loadedCount / $totalAds")
             if (errorCount > 0) {
                 append(" (Errors: $errorCount)")
             }
-            if (completed == total) {
+            if (completed == totalAds) {
                 append("\n\nAll ads processed. Compose components are working correctly inside AndroidView!")
             }
         }

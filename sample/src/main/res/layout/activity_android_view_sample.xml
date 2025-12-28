@@ -76,6 +76,159 @@
                     android:layout_marginTop="4dp" />
             </LinearLayout>
 
+            <!-- CTR Optimized Section Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#E8F5E9"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CTR Optimized Templates"
+                    android:textStyle="bold"
+                    android:textColor="#2E7D32"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="High-performance ad templates"
+                    android:textColor="#388E3C"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- Full Width Media Template Section (CTR+) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full Width Media Template (CTR+)"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#1D1B20"
+                android:layout_marginBottom="8dp" />
+
+            <FrameLayout
+                android:id="@+id/fullWidthMediaAdContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:minHeight="300dp">
+
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/fullWidthMediaAdComposeView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <ProgressBar
+                    android:id="@+id/fullWidthMediaAdProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+            </FrameLayout>
+
+            <!-- Content Template Section (CTR+) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Content Template (CTR+)"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#1D1B20"
+                android:layout_marginBottom="8dp" />
+
+            <FrameLayout
+                android:id="@+id/contentAdContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:minHeight="250dp">
+
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/contentAdComposeView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <ProgressBar
+                    android:id="@+id/contentAdProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+            </FrameLayout>
+
+            <!-- App Install Template Section (CTR+) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="App Install Template (CTR+)"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#1D1B20"
+                android:layout_marginBottom="8dp" />
+
+            <FrameLayout
+                android:id="@+id/appInstallAdContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:minHeight="200dp">
+
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/appInstallAdComposeView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <ProgressBar
+                    android:id="@+id/appInstallAdProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+            </FrameLayout>
+
+            <!-- Standard Templates Section Header -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Standard Templates"
+                android:textStyle="bold"
+                android:textColor="#49454F"
+                android:textSize="16sp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Headline Template Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Headline Template"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#1D1B20"
+                android:layout_marginBottom="8dp" />
+
+            <FrameLayout
+                android:id="@+id/headlineAdContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:minHeight="50dp">
+
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/headlineAdComposeView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <ProgressBar
+                    android:id="@+id/headlineAdProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+            </FrameLayout>
+
             <!-- Small Template Section -->
             <TextView
                 android:layout_width="wrap_content"
@@ -100,6 +253,35 @@
 
                 <ProgressBar
                     android:id="@+id/smallAdProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+            </FrameLayout>
+
+            <!-- Icon Small Template Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Icon Small Template"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#1D1B20"
+                android:layout_marginBottom="8dp" />
+
+            <FrameLayout
+                android:id="@+id/iconSmallAdContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:minHeight="80dp">
+
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/iconSmallAdComposeView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <ProgressBar
+                    android:id="@+id/iconSmallAdProgress"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center" />
@@ -158,35 +340,6 @@
 
                 <ProgressBar
                     android:id="@+id/largeAdProgress"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center" />
-            </FrameLayout>
-
-            <!-- Content Template Section -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Content Template (CTR+)"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#1D1B20"
-                android:layout_marginBottom="8dp" />
-
-            <FrameLayout
-                android:id="@+id/contentAdContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:minHeight="250dp">
-
-                <androidx.compose.ui.platform.ComposeView
-                    android:id="@+id/contentAdComposeView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-
-                <ProgressBar
-                    android:id="@+id/contentAdProgress"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center" />
