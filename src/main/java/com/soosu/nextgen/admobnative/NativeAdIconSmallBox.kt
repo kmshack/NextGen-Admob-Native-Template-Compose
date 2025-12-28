@@ -35,7 +35,7 @@ fun NativeAdIconSmallBox(
 
                 val adView = nativeAdView.also { adView ->
                     adView.adChoicesView = adChoice
-                    adView.callToActionView = ctaContainer
+                    adView.callToActionView = background
                     adView.headlineView = primary
                     adView.bodyView = secondary
                     adView.iconView = icon
@@ -63,13 +63,6 @@ fun NativeAdIconSmallBox(
 
                 nativeAd.headline?.let { headline ->
                     primary.text = headline
-                }
-
-                // Set call to action
-                nativeAd.callToAction?.let { callToAction ->
-                    cta.text = callToAction
-                } ?: run {
-                    cta.text = "Install"
                 }
 
                 nativeAd.icon?.drawable?.let { drawable ->

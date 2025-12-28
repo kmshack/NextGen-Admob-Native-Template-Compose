@@ -8,7 +8,9 @@
     <FrameLayout
         android:id="@+id/background"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -38,10 +40,10 @@
 
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginEnd="15dp"
+                android:layout_weight="1"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -102,36 +104,6 @@
 
             </LinearLayout>
 
-
-            <!-- Install Button (Right Side) -->
-            <FrameLayout
-                android:id="@+id/cta_container"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginEnd="12dp"
-                android:background="@drawable/rounded_corner_20dp"
-                android:backgroundTint="#1976D2"
-                android:clipToOutline="true"
-                android:outlineProvider="background">
-
-                <TextView
-                    android:id="@+id/cta"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:includeFontPadding="false"
-                    android:minWidth="80dp"
-                    android:paddingStart="18dp"
-                    android:paddingTop="10dp"
-                    android:paddingEnd="18dp"
-                    android:paddingBottom="10dp"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    tools:text="Install" />
-
-            </FrameLayout>
 
         </LinearLayout>
 
