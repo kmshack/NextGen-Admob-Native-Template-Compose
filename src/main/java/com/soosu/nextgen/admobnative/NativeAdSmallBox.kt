@@ -38,7 +38,7 @@ fun NativeAdSmallBox(
                     adView.headlineView = primary
                     adView.bodyView = secondary
                     adView.iconView = icon
-                    adView.callToActionView = nativeAdView
+                    adView.callToActionView = background
                 }
 
                 background.setBackgroundColor(bgColor)
