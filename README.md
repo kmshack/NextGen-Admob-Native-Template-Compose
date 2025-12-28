@@ -79,7 +79,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.1.1")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.1.2")
 }
 ```
 
