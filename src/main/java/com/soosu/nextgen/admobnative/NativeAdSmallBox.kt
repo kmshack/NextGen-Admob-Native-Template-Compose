@@ -1,6 +1,7 @@
 package com.soosu.nextgen.admobnative
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import androidx.compose.foundation.layout.Box
@@ -35,13 +36,14 @@ fun NativeAdSmallBox(
 
                 val adView = nativeAdView.also { adView ->
                     adView.adChoicesView = adChoice
-                    adView.headlineView = primary
-                    adView.bodyView = secondary
-                    adView.iconView = icon
                     adView.callToActionView = background
+                    adView.headlineView = primary
+                    adView.iconView = icon
+                    adView.bodyView = secondary
                 }
 
-                background.setBackgroundColor(bgColor)
+                background.backgroundTintList = ColorStateList.valueOf(bgColor)
+
                 secondary.setTextColor(txtColor)
                 primary.setTextColor(txtColor)
 
@@ -52,16 +54,16 @@ fun NativeAdSmallBox(
                     cornerRadius = 6f * ad.context.resources.displayMetrics.density
                 }
 
+                nativeAd.headline?.let { headline ->
+                    primary.text = headline
+                }
+
                 secondary.text = when {
                     !nativeAd.body.isNullOrEmpty() -> nativeAd.body
                     !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
                     !nativeAd.store.isNullOrEmpty() -> nativeAd.store
                     !nativeAd.callToAction.isNullOrEmpty() -> nativeAd.callToAction
                     else -> "ˑˑˑ"
-                }
-
-                nativeAd.headline?.let { headline ->
-                    primary.text = headline
                 }
 
                 nativeAd.icon?.drawable?.let { drawable ->
