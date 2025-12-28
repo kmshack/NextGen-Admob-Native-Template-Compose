@@ -40,7 +40,7 @@ fun NativeAdHeadlineBox(
                     binding.apply {
                         val adView = nativeAdView.also { adView ->
                             adView.adChoicesView = adChoice
-//                            adView.callToActionView = arrow
+                            adView.callToActionView = nativeAdView
                             adView.headlineView = primary
                         }
 

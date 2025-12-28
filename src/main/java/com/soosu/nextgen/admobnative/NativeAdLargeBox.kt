@@ -41,7 +41,7 @@ fun NativeAdLargeBox(
 
                 val adView = nativeAdView.also { adView ->
                     adView.adChoicesView = adChoice
-                    adView.callToActionView = ctaContainer
+                    adView.callToActionView = nativeAdView
                     adView.headlineView = primary
                     adView.iconView = icon
                     adView.bodyView = description
