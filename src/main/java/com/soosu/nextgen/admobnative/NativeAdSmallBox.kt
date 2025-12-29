@@ -41,8 +41,7 @@ fun NativeAdSmallBox(
                     adView.bodyView = secondary
                 }
 
-                background.backgroundTintList = ColorStateList.valueOf(bgColor)
-
+                background.setBackgroundColor(bgColor)
                 secondary.setTextColor(txtColor)
                 primary.setTextColor(txtColor)
 

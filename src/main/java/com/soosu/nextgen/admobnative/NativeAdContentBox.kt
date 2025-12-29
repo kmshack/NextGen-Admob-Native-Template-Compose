@@ -84,7 +84,7 @@ fun NativeAdContentBox(
                 sponsoredLabel.setTextColor(ColorUtils.blendARGB(txtColor, bgColor, 0.4f))
 
                 // Configure CTA button
-                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
+                ctaContainer.setBackgroundColor(ctaBgColor)
                 cta.setTextColor(ctaTxtColor)
 
                 // Set advertiser name
