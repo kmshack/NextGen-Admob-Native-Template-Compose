@@ -39,6 +39,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 - [Available Templates](#available-templates)
 - [API Reference](#api-reference)
 - [Advanced Usage](#advanced-usage)
+- [View-based Usage](#view-based-usage)
 - [Migration from Legacy SDK](#migration-from-legacy-sdk)
 - [Sample App](#sample-app)
 - [Dependencies](#dependencies)
@@ -79,7 +80,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.1.5")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.2.0")
 }
 ```
 
@@ -454,6 +455,149 @@ NativeAdAutoColorWrapper(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
     )
+}
+```
+
+---
+
+## View-based Usage
+
+For projects that prefer traditional Android Views over Jetpack Compose, the library provides `NativeAdTemplateView` - a custom View that supports all 8 template types.
+
+### XML Layout Usage
+
+```xml
+<com.soosu.nextgen.admobnative.NativeAdTemplateView
+    android:id="@+id/native_ad_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:adTemplate="medium"
+    app:adBackgroundColor="#FFFFFF"
+    app:adTextColor="#222222"
+    app:adCtaButtonColor="#1976D2"
+    app:adCtaTextColor="#FFFFFF" />
+```
+
+### Available XML Attributes
+
+| Attribute | Format | Description |
+|-----------|--------|-------------|
+| `app:adTemplate` | enum | Template type: `small`, `medium`, `large`, `headline`, `iconSmall`, `content`, `fullWidthMedia`, `appInstall` |
+| `app:adBackgroundColor` | color | Background color of the ad |
+| `app:adTextColor` | color | Text color for ad content |
+| `app:adCtaButtonColor` | color | CTA button background color |
+| `app:adCtaTextColor` | color | CTA button text color |
+
+### Kotlin/Java Usage
+
+```kotlin
+import com.soosu.nextgen.admobnative.NativeAdTemplateView
+import com.soosu.nextgen.admobnative.AdTemplateType
+
+class MyActivity : AppCompatActivity() {
+
+    private lateinit var adView: NativeAdTemplateView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        adView = findViewById(R.id.native_ad_view)
+
+        // Optionally change template programmatically
+        adView.setTemplate(AdTemplateType.LARGE)
+
+        // Optionally customize colors programmatically
+        adView.setAdBackgroundColor(Color.WHITE)
+        adView.setAdTextColor(Color.BLACK)
+        adView.setCtaButtonColor(Color.parseColor("#1976D2"))
+        adView.setCtaTextColor(Color.WHITE)
+
+        // Load and display ad
+        loadNativeAd()
+    }
+
+    private fun loadNativeAd() {
+        val adRequest = NativeAdRequest.Builder(
+            "YOUR_AD_UNIT_ID",
+            listOf(NativeAd.NativeAdType.NATIVE)
+        ).build()
+
+        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
+            override fun onNativeAdLoaded(ad: NativeAd) {
+                adView.setNativeAd(ad)
+            }
+
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                // Handle error
+            }
+        })
+    }
+}
+```
+
+### Template Types (AdTemplateType)
+
+| Enum Value | XML Value | Description |
+|------------|-----------|-------------|
+| `AdTemplateType.SMALL` | `small` | Compact horizontal layout |
+| `AdTemplateType.MEDIUM` | `medium` | Full-featured card layout |
+| `AdTemplateType.LARGE` | `large` | Premium layout with media, rating, price |
+| `AdTemplateType.HEADLINE` | `headline` | Ultra-compact header layout |
+| `AdTemplateType.ICON_SMALL` | `iconSmall` | Icon-focused content feed layout |
+| `AdTemplateType.CONTENT` | `content` | Social media style layout |
+| `AdTemplateType.FULL_WIDTH_MEDIA` | `fullWidthMedia` | High-impact hero placement |
+| `AdTemplateType.APP_INSTALL` | `appInstall` | App Store style layout |
+
+### Complete Example
+
+```kotlin
+class ViewSampleActivity : ComponentActivity() {
+
+    private val nativeAds = mutableListOf<NativeAd>()
+    private val testAdUnitId = "ca-app-pub-3940256099942544/2247696110"
+
+    private lateinit var adSmall: NativeAdTemplateView
+    private lateinit var adMedium: NativeAdTemplateView
+    private lateinit var adLarge: NativeAdTemplateView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_view_sample)
+
+        adSmall = findViewById(R.id.ad_small)
+        adMedium = findViewById(R.id.ad_medium)
+        adLarge = findViewById(R.id.ad_large)
+
+        loadAdFor(adSmall)
+        loadAdFor(adMedium)
+        loadAdFor(adLarge)
+    }
+
+    private fun loadAdFor(templateView: NativeAdTemplateView) {
+        val adRequest = NativeAdRequest.Builder(
+            testAdUnitId,
+            listOf(NativeAd.NativeAdType.NATIVE)
+        ).build()
+
+        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
+            override fun onNativeAdLoaded(ad: NativeAd) {
+                runOnUiThread {
+                    nativeAds.add(ad)
+                    templateView.setNativeAd(ad)
+                }
+            }
+
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                // Handle error
+            }
+        })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        nativeAds.clear()
+    }
 }
 ```
 
