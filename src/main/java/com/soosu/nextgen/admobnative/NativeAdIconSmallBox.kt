@@ -34,7 +34,6 @@ fun NativeAdIconSmallBox(
             ) {
 
                 val adView = nativeAdView.also { adView ->
-                    adView.adChoicesView = adChoice
                     adView.callToActionView = background
                     adView.headlineView = primary
                     adView.bodyView = secondary

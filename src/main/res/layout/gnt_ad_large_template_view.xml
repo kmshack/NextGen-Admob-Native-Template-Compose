@@ -230,20 +230,5 @@
 
         </FrameLayout>
 
-        <!-- Ad Choices in FrameLayout for absolute positioning -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <com.google.android.libraries.ads.mobile.sdk.common.AdChoicesView
-                android:id="@+id/adChoice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|start"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="4dp" />
-
-        </FrameLayout>
-
     </LinearLayout>
 </com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView>

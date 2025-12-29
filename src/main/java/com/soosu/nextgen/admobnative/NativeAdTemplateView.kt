@@ -17,7 +17,6 @@ import android.widget.RatingBar
 import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
-import com.google.android.libraries.ads.mobile.sdk.common.AdChoicesView
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView
@@ -208,9 +207,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adImage = adView.findViewById<ImageView>(R.id.ad_image)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = background
         adView.headlineView = primary
         adView.iconView = icon
@@ -273,9 +270,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = background
         adView.headlineView = primary
         adView.iconView = icon
@@ -353,11 +348,9 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
         val ratingBar = adView.findViewById<RatingBar>(R.id.rating_bar)
         val price = adView.findViewById<TextView>(R.id.price)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = ctaContainer
         adView.headlineView = primary
         adView.iconView = icon
@@ -441,9 +434,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val cta = adView.findViewById<TextView>(R.id.cta)
         val bar = adView.findViewById<TextView>(R.id.bar)
         val arrow = adView.findViewById<ImageView>(R.id.arrow)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = background
         adView.headlineView = primary
 
@@ -466,9 +457,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val ad = adView.findViewById<TextView>(R.id.ad)
         val icon = adView.findViewById<ImageView>(R.id.icon)
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = background
         adView.headlineView = primary
         adView.iconView = icon
@@ -517,9 +506,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = ctaContainer
         adView.headlineView = headline
         adView.iconView = icon
@@ -598,9 +585,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
         val fallbackContainer = adView.findViewById<View>(R.id.fallback_container)
         val gradientOverlay = adView.findViewById<View>(R.id.gradient_overlay)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = ctaContainer
         adView.headlineView = primary
         adView.iconView = icon
@@ -673,13 +658,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
-        val adChoice = adView.findViewById<AdChoicesView>(R.id.adChoice)
         val ratingBar = adView.findViewById<RatingBar>(R.id.rating_bar)
         val ratingText = adView.findViewById<TextView>(R.id.rating_text)
         val price = adView.findViewById<TextView>(R.id.price)
         val separator = adView.findViewById<View>(R.id.separator)
 
-        adView.adChoicesView = adChoice
         adView.callToActionView = ctaContainer
         adView.headlineView = primary
         adView.iconView = icon
