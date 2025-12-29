@@ -322,7 +322,7 @@ fun MainScreen() {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // AndroidView Test Button
+            // Sample Activity Buttons
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -335,29 +335,43 @@ fun MainScreen() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            "AndroidView + Compose Test",
+                            "Sample Activities",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1565C0)
                         )
                         Text(
-                            "Test NativeAd Compose components inside traditional Android Views using ComposeView",
+                            "Test different integration patterns for NativeAd templates",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF1976D2)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+
+                        // View Sample Button
                         Button(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(context, ViewSampleActivity::class.java)
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF4CAF50)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("View Sample (NativeAdTemplateView)")
+                        }
+
+                        // AndroidView + Compose Sample Button
+                        OutlinedButton(
                             onClick = {
                                 context.startActivity(
                                     Intent(context, AndroidViewSampleActivity::class.java)
                                 )
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF2196F3)
-                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Open AndroidView Sample")
+                            Text("AndroidView + Compose Sample")
                         }
                     }
                 }

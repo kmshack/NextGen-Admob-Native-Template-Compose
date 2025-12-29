@@ -24,6 +24,11 @@
             android:name=".AndroidViewSampleActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+
+        <activity
+            android:name=".ViewSampleActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
     </application>
 
 </manifest>
