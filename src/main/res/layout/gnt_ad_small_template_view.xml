@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/native_ad_view"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:focusable="true">
 
     <FrameLayout
         android:id="@+id/background"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:clickable="true"
-        android:focusable="true">
+        android:focusable="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:focusable="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -35,6 +35,7 @@
                     android:layout_marginStart="18dp"
                     android:layout_marginEnd="4dp"
                     android:ellipsize="end"
+                    android:focusable="false"
                     android:includeFontPadding="false"
                     android:lineSpacingMultiplier="0.9"
                     android:maxLines="1"
@@ -60,6 +61,7 @@
                         android:layout_height="14dp"
                         android:background="@drawable/rounded_corner_7dp"
                         android:clipToOutline="true"
+                        android:focusable="false"
                         android:outlineProvider="background"
                         android:visibility="gone"
                         tools:visibility="visible">
@@ -78,6 +80,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:alpha="0.8"
+                        android:focusable="false"
                         android:gravity="center_vertical"
                         android:includeFontPadding="false"
                         android:paddingStart="4dp"
@@ -96,6 +99,7 @@
                         android:layout_marginStart="4dp"
                         android:layout_weight="1"
                         android:alpha="0.8"
+                        android:focusable="false"
                         android:gravity="center_vertical"
                         android:includeFontPadding="false"
                         android:maxLines="1"
@@ -121,6 +125,7 @@
                 android:layout_marginBottom="8dp"
                 android:background="@drawable/rounded_corner_6dp"
                 android:clipToOutline="true"
+                android:focusable="false"
                 android:maxWidth="120dp"
                 android:outlineProvider="background"
                 android:visibility="gone"
@@ -131,6 +136,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="64dp"
                     android:adjustViewBounds="true"
+                    android:focusable="false"
                     android:maxWidth="120dp"
                     android:scaleType="centerCrop" />
 

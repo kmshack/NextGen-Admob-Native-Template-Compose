@@ -170,9 +170,9 @@ class NativeAdTemplateView @JvmOverloads constructor(
             AdTemplateType.FULL_WIDTH_MEDIA -> R.layout.gnt_ad_fullwidth_media_template_view
             AdTemplateType.APP_INSTALL -> R.layout.gnt_ad_app_install_template_view
         }
-        val view = LayoutInflater.from(context).inflate(layoutRes, this, false)
-        addView(view)
-        nativeAdView = view as? NativeAdView
+
+        View.inflate(context, layoutRes, this)
+        nativeAdView = findViewById(R.id.native_ad_view)
     }
 
     /**
