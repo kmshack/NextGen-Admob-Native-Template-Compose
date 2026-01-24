@@ -64,7 +64,7 @@ fun NativeAdFullWidthMediaBox(
                 }
 
                 // Configure CTA button colors
-                ctaContainer.setBackgroundColor(ctaBgColor)
+                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
                 cta.setTextColor(ctaTxtColor)
 
                 // Set headline
@@ -112,7 +112,7 @@ fun NativeAdFullWidthMediaBox(
                 }
 
                 // Set media content with gradient overlay
-                nativeAd.mediaContent?.let { mediaContent ->
+                nativeAd.mediaContent.let { mediaContent ->
                     adMedia.mediaContent = mediaContent
                     adMedia.visibility = View.VISIBLE
                     adImageContainer.visibility = View.VISIBLE
@@ -120,10 +120,6 @@ fun NativeAdFullWidthMediaBox(
 
                     // Apply gradient overlay
                     applyGradientOverlay(gradientOverlay)
-                } ?: run {
-                    // No media, show fallback layout
-                    adImageContainer.visibility = View.GONE
-                    fallbackContainer.visibility = View.VISIBLE
                 }
 
                 adView.registerNativeAd(nativeAd, adMedia)

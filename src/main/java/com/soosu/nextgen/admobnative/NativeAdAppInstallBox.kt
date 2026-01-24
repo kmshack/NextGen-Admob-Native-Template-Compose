@@ -88,7 +88,7 @@ fun NativeAdAppInstallBox(
                 ratingText.setTextColor(ColorUtils.blendARGB(txtColor, bgColor, 0.4f))
 
                 // Configure CTA button
-                ctaContainer.setBackgroundColor(ctaBgColor)
+                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
                 cta.setTextColor(ctaTxtColor)
 
                 // Set AD badge colors (harmonize with other text)

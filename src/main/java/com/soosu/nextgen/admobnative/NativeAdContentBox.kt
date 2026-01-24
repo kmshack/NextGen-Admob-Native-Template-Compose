@@ -84,7 +84,7 @@ fun NativeAdContentBox(
                 sponsoredLabel.setTextColor(ColorUtils.blendARGB(txtColor, bgColor, 0.4f))
 
                 // Configure CTA button
-                ctaContainer.setBackgroundColor(ctaBgColor)
+                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
                 cta.setTextColor(ctaTxtColor)
 
                 // Set advertiser name
@@ -127,7 +127,7 @@ fun NativeAdContentBox(
                 }
 
                 // Set media content
-                nativeAd.mediaContent?.let { mediaContent ->
+                nativeAd.mediaContent.let { mediaContent ->
                     Log.d(
                         "NativeAdContentBox",
                         "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
@@ -144,9 +144,6 @@ fun NativeAdContentBox(
                     }
                     adMedia.visibility = View.VISIBLE
                     adImageContainer.visibility = View.VISIBLE
-                } ?: run {
-                    adMedia.visibility = View.GONE
-                    adImageContainer.visibility = View.GONE
                 }
 
                 adView.registerNativeAd(nativeAd, adMedia)

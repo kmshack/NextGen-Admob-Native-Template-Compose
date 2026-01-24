@@ -44,8 +44,6 @@ fun NativeAdLargeBox(
                     adView.headlineView = primary
                     adView.iconView = icon
                     adView.bodyView = description
-                    adView.starRatingView = ratingBar
-                    adView.priceView = price
                 }
 
                 background.setBackgroundColor(bgColor)
@@ -53,7 +51,7 @@ fun NativeAdLargeBox(
                 primary.setTextColor(txtColor)
                 description.setTextColor(txtColor)
                 cta.setTextColor(ctaTxtColor)
-                ctaContainer.setBackgroundColor(ctaBgColor)
+                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
 
                 // Set AD badge colors (harmonize with other text)
                 ad.setTextColor(txtColor)
@@ -99,7 +97,7 @@ fun NativeAdLargeBox(
                 }
 
                 // Set media content (video or image)
-                nativeAd.mediaContent?.let { mediaContent ->
+                nativeAd.mediaContent.let { mediaContent ->
                     Log.d(
                         "NativeAdLargeBox",
                         "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
@@ -120,19 +118,6 @@ fun NativeAdLargeBox(
                     adMedia.visibility = View.GONE
                     adImageContainer.visibility = View.GONE
                 }
-
-                // Set star rating
-                nativeAd.starRating?.let { rating ->
-                    ratingBar.rating = rating.toFloat()
-                    ratingBar.visibility = View.VISIBLE
-                }
-
-                // Set price
-                nativeAd.price?.let { priceValue ->
-                    price.text = priceValue
-                    price.visibility = View.VISIBLE
-                }
-
 
                 adView.registerNativeAd(nativeAd, adMedia)
 
