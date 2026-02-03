@@ -1,6 +1,7 @@
 package com.soosu.nextgen.admobnative
 
 import android.annotation.SuppressLint
+import android.util.TypedValue
 import android.view.LayoutInflater
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,22 @@ fun NativeAdHeadlineBox(
                         cta.setTextColor(txtColor)
                         bar.setTextColor(txtColor)
                         arrow.setColorFilter(txtColor)
+
+                        // 화면 너비를 기반으로 primary의 maxWidth를 동적으로 설정
+                        view.post {
+                            val displayMetrics = view.context.resources.displayMetrics
+                            val screenWidth = displayMetrics.widthPixels
+
+                            // AD 배지, bar, 화살표, 여백 등을 위한 예상 공간 (약 150dp)
+                            val reservedSpace = TypedValue.applyDimension(
+                                TypedValue.COMPLEX_UNIT_DIP,
+                                180f,
+                                displayMetrics
+                            ).toInt()
+
+                            val maxWidthForPrimary = screenWidth - reservedSpace
+                            primary.maxWidth = if (maxWidthForPrimary > 0) maxWidthForPrimary else screenWidth
+                        }
 
                         nativeAd.headline?.let { headline ->
                             primary.text = headline
