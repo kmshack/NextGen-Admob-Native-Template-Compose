@@ -42,8 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.google.android.libraries.ads.mobile.sdk.MobileAds
-import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
@@ -57,27 +55,12 @@ import com.soosu.nextgen.admobnative.NativeAdIconSmallBox
 import com.soosu.nextgen.admobnative.NativeAdLargeBox
 import com.soosu.nextgen.admobnative.NativeAdMediumBox
 import com.soosu.nextgen.admobnative.NativeAdSmallBox
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize GMA Next-Gen SDK on background thread
-        // Test App ID for AdMob
-        val testAppId = "ca-app-pub-3940256099942544~3347511713"
-
-        CoroutineScope(Dispatchers.IO).launch {
-            MobileAds.initialize(
-                this@MainActivity,
-                InitializationConfig.Builder(testAppId).build()
-            ) {
-                // Initialization complete
-            }
-        }
-
+        // SDK 초기화는 SplashActivity에서 SplashAdLoader.execute()를 통해 처리됨
         setContent {
             AdMobNativeSampleTheme {
                 Surface(

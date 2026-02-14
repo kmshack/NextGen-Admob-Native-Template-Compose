@@ -49,6 +49,15 @@ dependencies {
     // Google AdMob Next-Gen SDK
     implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.23.0-beta01")
 
+    // UMP SDK
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+
+    // Lifecycle (포그라운드 감지)
+    implementation("androidx.lifecycle:lifecycle-process:2.8.7")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
     // Palette for color extraction
     implementation("androidx.palette:palette-ktx:1.0.0")
 }
@@ -61,7 +70,7 @@ afterEvaluate {
 
                 groupId = "com.github.kmshack"
                 artifactId = "nextgen-admob-native-template-compose"
-                version = "1.2.8"
+                version = "1.3.0"
 
                 pom {
                     name.set("NextGen Admob Native Template Compose")

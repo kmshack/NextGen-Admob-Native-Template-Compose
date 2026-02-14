@@ -39,6 +39,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 - [Available Templates](#available-templates)
 - [API Reference](#api-reference)
 - [Advanced Usage](#advanced-usage)
+- [AdMob Initialization, UMP Consent & App Open Ads](#admob-initialization-ump-consent--app-open-ads)
 - [View-based Usage](#view-based-usage)
 - [Migration from Legacy SDK](#migration-from-legacy-sdk)
 - [Sample App](#sample-app)
@@ -460,6 +461,195 @@ NativeAdAutoColorWrapper(
 
 ---
 
+## AdMob Initialization, UMP Consent & App Open Ads
+
+The library provides built-in support for **UMP consent management**, **SDK initialization**, **splash screen ads**, and **foreground app open ads** - eliminating boilerplate code that is typically duplicated across projects.
+
+### Setup
+
+#### 1. Create AdmobConfig
+
+`AdmobConfig` holds all settings for your project. Use the Builder pattern:
+
+```kotlin
+val config = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
+    .splashAdUnitId("ca-app-pub-xxx/splash")         // null이면 스플래시 광고 비활성화
+    .foregroundAdUnitId("ca-app-pub-xxx/foreground")  // null이면 포그라운드 광고 비활성화
+    .consentTimeoutMs(5_000)                          // UMP 타임아웃 (기본 5초)
+    .splashAdLoadTimeoutMs(8_000)                     // 스플래시 광고 로드 타임아웃 (기본 8초)
+    .foregroundAdCooldownMs(30_000)                   // 포그라운드 광고 로드 쿨다운 (기본 30초)
+    .foregroundAdShowIntervalMs(10_000)               // 포그라운드 광고 표시 간격 (기본 0)
+    .preloadOnBackground(true)                        // 백그라운드 진입 시 프리로드
+    .shouldSuppressAds { isPremiumUser() }            // 광고 억제 조건
+    .debugLogging(BuildConfig.DEBUG)
+    .build()
+```
+
+**AdmobConfig Parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `splashAdUnitId` | `null` | 스플래시 광고 단위 ID. `null`이면 비활성화 |
+| `foregroundAdUnitId` | `null` | 포그라운드 광고 단위 ID. `null`이면 비활성화 |
+| `consentTimeoutMs` | `5000` | UMP 동의 수집 타임아웃 (ms) |
+| `splashAdLoadTimeoutMs` | `8000` | 스플래시 광고 로드 타임아웃 (ms) |
+| `foregroundAdExpirationMs` | `4시간` | 로드된 포그라운드 광고 만료 시간 |
+| `foregroundAdCooldownMs` | `30000` | 포그라운드 광고 로드 재시도 쿨다운 (ms) |
+| `foregroundAdShowIntervalMs` | `0` | 포그라운드 광고 표시 최소 간격 (ms) |
+| `preloadOnBackground` | `false` | 백그라운드 진입 시 광고 프리로드 여부 |
+| `shouldSuppressAds` | `{ false }` | 광고 억제 조건 (프리미엄 사용자 등) |
+| `debugLogging` | `false` | 디버그 로그 출력 여부 |
+
+#### 2. Application Setup
+
+```kotlin
+class MyApp : Application() {
+
+    lateinit var admobConfig: AdmobConfig
+    lateinit var appOpenAdManager: AppOpenAdManager
+    lateinit var adLifecycleObserver: AppOpenAdLifecycleObserver
+
+    override fun onCreate() {
+        super.onCreate()
+
+        admobConfig = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
+            .splashAdUnitId("ca-app-pub-xxx/splash")
+            .foregroundAdUnitId("ca-app-pub-xxx/foreground")
+            .shouldSuppressAds { isPremiumUser() }
+            .debugLogging(BuildConfig.DEBUG)
+            .build()
+
+        appOpenAdManager = AppOpenAdManager(admobConfig)
+
+        adLifecycleObserver = AppOpenAdLifecycleObserver(
+            application = this,
+            adManager = appOpenAdManager,
+            config = admobConfig,
+        ).apply {
+            // 스플래시에서는 포그라운드 광고 표시 안 함
+            excludedActivities.add(SplashActivity::class.java.name)
+        }
+    }
+}
+```
+
+### Splash Ad (UMP Consent + SDK Init + App Open Ad)
+
+`SplashAdLoader.execute()`는 단일 `suspend` 함수로 전체 스플래시 플로우를 처리합니다:
+
+1. `shouldSuppressAds` 체크
+2. UMP 동의 수집 (타임아웃 적용)
+3. GMA SDK 초기화
+4. App Open Ad 로드 (타임아웃 적용)
+5. 광고 표시 → dismiss 대기
+
+```kotlin
+class SplashActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { /* 스플래시 UI */ }
+
+        val app = application as MyApp
+
+        lifecycleScope.launch {
+            // 전체 플로우를 한 줄로 실행
+            val result = SplashAdLoader.execute(this@SplashActivity, app.admobConfig)
+
+            when (result) {
+                SplashAdResult.AD_SHOWN -> { /* 광고 표시 완료 */ }
+                SplashAdResult.AD_NOT_AVAILABLE -> { /* 광고 없음 */ }
+                SplashAdResult.SKIPPED -> { /* 조건에 의해 스킵 */ }
+            }
+
+            // 스플래시 → 메인 전환 시 포그라운드 광고 1회 스킵
+            app.adLifecycleObserver.ignoreNextForegroundAd()
+
+            // 포그라운드 광고 프리로드
+            app.appOpenAdManager.loadAd(this@SplashActivity)
+
+            startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+            finish()
+        }
+    }
+}
+```
+
+### Foreground App Open Ad
+
+`AppOpenAdLifecycleObserver`가 `ProcessLifecycleOwner`와 `ActivityLifecycleCallbacks`를 통해 자동으로 포그라운드 전환을 감지하고 광고를 표시합니다. Application에서 한 번만 등록하면 됩니다.
+
+**주요 기능:**
+
+```kotlin
+// 특정 Activity 제외
+adLifecycleObserver.excludedActivities.add(SplashActivity::class.java.name)
+adLifecycleObserver.excludedActivities.add(SettingsActivity::class.java.name)
+
+// 다음 1회 포그라운드 광고 스킵
+adLifecycleObserver.ignoreNextForegroundAd()
+
+// 광고 수동 표시 (필요 시)
+appOpenAdManager.showAdIfAvailable(activity) {
+    // 광고 표시 완료 또는 실패 후 콜백
+}
+
+// 광고 수동 로드 (필요 시)
+appOpenAdManager.loadAd(context)
+```
+
+### UMP Privacy Options
+
+설정 화면에서 사용자가 프라이버시 옵션을 다시 볼 수 있도록:
+
+```kotlin
+val consentManager = AdmobConsentManager(context)
+
+// 프라이버시 옵션이 필요한 경우에만 버튼 표시
+if (consentManager.isPrivacyOptionsRequired) {
+    Button(onClick = {
+        scope.launch {
+            consentManager.showPrivacyOptionsForm(activity)
+        }
+    }) {
+        Text("Privacy Settings")
+    }
+}
+```
+
+### Project-Specific Configuration Examples
+
+각 프로젝트 특성에 맞게 `AdmobConfig`를 조정할 수 있습니다:
+
+```kotlin
+// ONEPass 스타일: consent 5s + ad 8s, 포그라운드 30s 쿨다운
+AdmobConfig.Builder(appId)
+    .consentTimeoutMs(5_000)
+    .splashAdLoadTimeoutMs(8_000)
+    .foregroundAdCooldownMs(30_000)
+    .build()
+
+// NotiAlarm 스타일: 광고 로드 5s, 포그라운드 광고 없음
+AdmobConfig.Builder(appId)
+    .splashAdLoadTimeoutMs(5_000)
+    .foregroundAdUnitId(null)  // 포그라운드 광고 비활성화
+    .build()
+
+// ONEWallet 스타일: 표시 간격 10s, 백그라운드 프리로드
+AdmobConfig.Builder(appId)
+    .foregroundAdShowIntervalMs(10_000)
+    .foregroundAdCooldownMs(5_000)
+    .preloadOnBackground(true)
+    .build()
+
+// ONEDiary 스타일: 빠른 로드 4s, 쿨다운 없음
+AdmobConfig.Builder(appId)
+    .splashAdLoadTimeoutMs(4_000)
+    .foregroundAdCooldownMs(0)
+    .build()
+```
+
+---
+
 ## View-based Usage
 
 For projects that prefer traditional Android Views over Jetpack Compose, the library provides `NativeAdTemplateView` - a custom View that supports all 8 template types.
@@ -722,7 +912,10 @@ This library uses the following dependencies:
 |------------|---------|---------|
 | Jetpack Compose BOM | 2025.06.00 | Compose runtime and UI |
 | Material 3 | 1.3.2+ | Material Design components |
-| GMA Next-Gen SDK | 0.22.0-beta04 | AdMob SDK |
+| GMA Next-Gen SDK | 0.23.0-beta01 | AdMob SDK (Native, App Open) |
+| UMP SDK | 4.0.0 | User consent management (GDPR/CCPA) |
+| Lifecycle Process | 2.8.7 | Foreground/background detection |
+| Kotlinx Coroutines | 1.9.0 | Coroutines support |
 | Palette KTX | 1.0.0 | Auto color extraction from images |
 | AndroidX Core KTX | 1.15.0 | Core Android utilities |
 | CardView | 1.0.0 | Card components |
