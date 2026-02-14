@@ -621,27 +621,27 @@ if (consentManager.isPrivacyOptionsRequired) {
 Adjust `AdmobConfig` to match each project's requirements:
 
 ```kotlin
-// ONEPass style: consent 5s + ad 8s, foreground 30s cooldown
+// Sample 1: consent 5s + ad 8s, foreground 30s cooldown
 AdmobConfig.Builder(appId)
     .consentTimeoutMs(5_000)
     .splashAdLoadTimeoutMs(8_000)
     .foregroundAdCooldownMs(30_000)
     .build()
 
-// NotiAlarm style: ad load 5s, no foreground ads
+// Sample 2: ad load 5s, no foreground ads
 AdmobConfig.Builder(appId)
     .splashAdLoadTimeoutMs(5_000)
     .foregroundAdUnitId(null)  // Disable foreground ads
     .build()
 
-// ONEWallet style: show interval 10s, background preload
+// Sample 3: show interval 10s, background preload
 AdmobConfig.Builder(appId)
     .foregroundAdShowIntervalMs(10_000)
     .foregroundAdCooldownMs(5_000)
     .preloadOnBackground(true)
     .build()
 
-// ONEDiary style: fast load 4s, no cooldown
+// Sample 4: fast load 4s, no cooldown
 AdmobConfig.Builder(appId)
     .splashAdLoadTimeoutMs(4_000)
     .foregroundAdCooldownMs(0)
