@@ -19,9 +19,9 @@ class AdmobConfig private constructor(
         private var consentTimeoutMs: Long = 5_000L
         private var splashAdLoadTimeoutMs: Long = 8_000L
         private var foregroundAdExpirationMs: Long = 4 * 60 * 60 * 1_000L
-        private var foregroundAdCooldownMs: Long = 30_000L
+        private var foregroundAdCooldownMs: Long = 10_000L
         private var foregroundAdShowIntervalMs: Long = 0L
-        private var preloadOnBackground: Boolean = false
+        private var preloadOnBackground: Boolean = true
         private var shouldSuppressAds: () -> Boolean = { false }
         private var debugLogging: Boolean = false
 

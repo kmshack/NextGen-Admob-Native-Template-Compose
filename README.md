@@ -477,7 +477,7 @@ val config = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
     .foregroundAdUnitId("ca-app-pub-xxx/foreground")  // null to disable foreground ads
     .consentTimeoutMs(5_000)                          // UMP timeout (default 5s)
     .splashAdLoadTimeoutMs(8_000)                     // Splash ad load timeout (default 8s)
-    .foregroundAdCooldownMs(30_000)                   // Foreground ad load cooldown (default 30s)
+    .foregroundAdCooldownMs(10_000)                   // Foreground ad load cooldown (default 10s)
     .foregroundAdShowIntervalMs(10_000)               // Foreground ad show interval (default 0)
     .preloadOnBackground(true)                        // Preload on entering background
     .shouldSuppressAds { isPremiumUser() }            // Ad suppression condition
@@ -494,9 +494,9 @@ val config = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
 | `consentTimeoutMs` | `5000` | UMP consent gathering timeout (ms) |
 | `splashAdLoadTimeoutMs` | `8000` | Splash ad load timeout (ms) |
 | `foregroundAdExpirationMs` | `4 hours` | Loaded foreground ad expiration time |
-| `foregroundAdCooldownMs` | `30000` | Foreground ad load retry cooldown (ms) |
+| `foregroundAdCooldownMs` | `10000` | Foreground ad load retry cooldown (ms) |
 | `foregroundAdShowIntervalMs` | `0` | Minimum interval between foreground ad shows (ms) |
-| `preloadOnBackground` | `false` | Whether to preload ads when entering background |
+| `preloadOnBackground` | `true` | Whether to preload ads when entering background |
 | `shouldSuppressAds` | `{ false }` | Ad suppression condition (e.g. premium users) |
 | `debugLogging` | `false` | Enable debug logging |
 
