@@ -35,6 +35,11 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     }
 
     fun loadAd(context: Context) {
+        if (!AdmobInitializer.isInitialized()) {
+            Log.d(TAG, "MobileAds is not initialized yet, skipping app open ad load")
+            return
+        }
+
         if (isLoadingAd || isAdAvailable()) return
 
         val adUnitId = config.foregroundAdUnitId ?: return
