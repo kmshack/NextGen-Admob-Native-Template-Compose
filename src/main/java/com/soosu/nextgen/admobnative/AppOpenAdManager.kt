@@ -72,15 +72,19 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         )
     }
 
-    fun showAdIfAvailable(activity: Activity, onShowAdComplete: () -> Unit = {}) {
+    fun showAdIfAvailable(
+        activity: Activity,
+        onShowAdComplete: () -> Unit = {},
+        loadAndShowIfMissing: Boolean = false,
+    ) {
         if (isShowingAd) {
-            Log.d(TAG, "Already showing ad")
+            Log.d(TAG, "Gating: already showing ad")
             onShowAdComplete()
             return
         }
 
         if (config.shouldSuppressAds()) {
-            Log.d(TAG, "Ads suppressed")
+            Log.d(TAG, "Gating: ads suppressed by config")
             onShowAdComplete()
             return
         }
@@ -88,7 +92,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         if (config.foregroundAdShowIntervalMs > 0 && lastAdShownTime > 0) {
             val elapsed = System.currentTimeMillis() - lastAdShownTime
             if (elapsed < config.foregroundAdShowIntervalMs) {
-                Log.d(TAG, "Show interval not met: ${elapsed}ms < ${config.foregroundAdShowIntervalMs}ms")
+                Log.d(TAG, "Gating: show interval not met (${elapsed}ms < ${config.foregroundAdShowIntervalMs}ms)")
                 onShowAdComplete()
                 return
             }
@@ -96,9 +100,13 @@ class AppOpenAdManager(private val config: AdmobConfig) {
 
         val ad = appOpenAd
         if (ad == null || !isAdAvailable()) {
-            Log.d(TAG, "No ad available")
-            onShowAdComplete()
-            loadAd(activity)
+            Log.d(TAG, "Gating: no ad available (ad=${if (ad == null) "null" else "expired"})")
+            if (loadAndShowIfMissing) {
+                loadAdAndShow(activity, onShowAdComplete)
+            } else {
+                onShowAdComplete()
+                loadAd(activity)
+            }
             return
         }
 
@@ -131,6 +139,49 @@ class AppOpenAdManager(private val config: AdmobConfig) {
 
         isShowingAd = true
         ad.show(activity)
+    }
+
+    private fun loadAdAndShow(activity: Activity, onShowAdComplete: () -> Unit) {
+        if (!AdmobInitializer.isInitialized()) {
+            Log.d(TAG, "loadAdAndShow: SDK not initialized, skipping")
+            onShowAdComplete()
+            return
+        }
+
+        val adUnitId = config.foregroundAdUnitId
+        if (adUnitId == null) {
+            onShowAdComplete()
+            return
+        }
+
+        if (isLoadingAd) {
+            Log.d(TAG, "loadAdAndShow: already loading")
+            onShowAdComplete()
+            return
+        }
+
+        isLoadingAd = true
+        lastAdLoadAttemptTime = System.currentTimeMillis()
+
+        val request = AdRequest.Builder(adUnitId).build()
+        AppOpenAd.load(
+            request,
+            object : AdLoadCallback<AppOpenAd> {
+                override fun onAdLoaded(ad: AppOpenAd) {
+                    appOpenAd = ad
+                    adLoadedTime = System.currentTimeMillis()
+                    isLoadingAd = false
+                    Log.d(TAG, "loadAdAndShow: ad loaded, showing immediately")
+                    showAdIfAvailable(activity, onShowAdComplete)
+                }
+
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    isLoadingAd = false
+                    Log.d(TAG, "loadAdAndShow: failed to load - ${error.message}")
+                    onShowAdComplete()
+                }
+            }
+        )
     }
 
     companion object {
