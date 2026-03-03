@@ -34,21 +34,10 @@ object SplashAdLoader {
             return SplashAdResult.SKIPPED
         }
 
-        // 1. Gather consent with timeout
-        val consentManager = AdmobConsentManager(activity)
-        val canRequestAds = withTimeoutOrNull(config.consentTimeoutMs) {
-            consentManager.gatherConsent(activity)
-        } ?: consentManager.canRequestAds
-
-        if (!canRequestAds) {
-            Log.d(TAG, "Cannot request ads after consent")
-            return SplashAdResult.AD_NOT_AVAILABLE
-        }
-
-        // 2. Initialize SDK
+        // 1. Initialize SDK (동의 수집은 앱 측에서 별도 처리)
         AdmobInitializer.initialize(activity, config.admobAppId)
 
-        // 3. Load ad with timeout
+        // 2. Load ad with timeout
         val ad = withTimeoutOrNull(config.splashAdLoadTimeoutMs) {
             loadAd(adUnitId)
         }
@@ -58,7 +47,7 @@ object SplashAdLoader {
             return SplashAdResult.AD_NOT_AVAILABLE
         }
 
-        // 4. Show ad and wait for dismiss
+        // 3. Show ad and wait for dismiss
         return showAd(activity, ad)
     }
 
