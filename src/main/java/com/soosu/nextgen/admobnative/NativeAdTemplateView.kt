@@ -17,6 +17,7 @@ import android.widget.RatingBar
 import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
+import com.google.android.libraries.ads.mobile.sdk.nativead.MediaContent
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView
@@ -348,8 +349,8 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
-        val ratingBar = adView.findViewById<RatingBar>(R.id.rating_bar)
-        val price = adView.findViewById<TextView>(R.id.price)
+        val ratingBar = adView.findViewById<RatingBar?>(R.id.rating_bar)
+        val price = adView.findViewById<TextView?>(R.id.price)
 
         adView.callToActionView = ctaContainer
         adView.headlineView = primary
@@ -379,8 +380,8 @@ class NativeAdTemplateView @JvmOverloads constructor(
             else -> "ˑˑˑ"
         }
 
-        nativeAd.headline?.let { primary.text = it }
-        nativeAd.callToAction?.let { cta.text = it }
+        primary.text = nativeAd.headline ?: ""
+        cta.text = nativeAd.callToAction ?: ""
 
         nativeAd.icon?.drawable?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
@@ -388,12 +389,14 @@ class NativeAdTemplateView @JvmOverloads constructor(
             icon.setImageDrawable(drawable)
         } ?: run {
             iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
         }
 
         nativeAd.body?.let { body ->
             description.text = body
             description.visibility = View.VISIBLE
         } ?: run {
+            description.text = ""
             description.visibility = View.GONE
         }
 
@@ -416,13 +419,18 @@ class NativeAdTemplateView @JvmOverloads constructor(
         }
 
         nativeAd.starRating?.let { rating ->
-            ratingBar.rating = rating.toFloat()
-            ratingBar.visibility = View.VISIBLE
+            ratingBar?.rating = rating.toFloat()
+            ratingBar?.visibility = View.VISIBLE
+        } ?: run {
+            ratingBar?.visibility = View.GONE
         }
 
         nativeAd.price?.let { priceValue ->
-            price.text = priceValue
-            price.visibility = View.VISIBLE
+            price?.text = priceValue
+            price?.visibility = View.VISIBLE
+        } ?: run {
+            price?.text = ""
+            price?.visibility = View.GONE
         }
 
         adView.registerNativeAd(nativeAd, adMedia)
@@ -579,25 +587,29 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val cta = adView.findViewById<TextView>(R.id.cta)
         val ctaFallback = adView.findViewById<TextView>(R.id.cta_fallback)
         val ctaContainer = adView.findViewById<View>(R.id.cta_container)
+        val ctaContainerFallback = adView.findViewById<View>(R.id.cta_container_fallback)
         val icon = adView.findViewById<ImageView>(R.id.icon)
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
         val fallbackContainer = adView.findViewById<View>(R.id.fallback_container)
         val gradientOverlay = adView.findViewById<View>(R.id.gradient_overlay)
-
-        adView.callToActionView = ctaContainer
-        adView.headlineView = primary
         adView.iconView = icon
         adView.bodyView = description
 
         ctaContainer.backgroundTintList = android.content.res.ColorStateList.valueOf(ctaButtonColor)
+        ctaContainerFallback.backgroundTintList = android.content.res.ColorStateList.valueOf(ctaButtonColor)
         cta.setTextColor(ctaTextColor)
+        ctaFallback.setTextColor(ctaTextColor)
 
-        nativeAd.headline?.let { headline ->
-            primary.text = headline
-            primaryFallback.text = headline
+        val headlineText = when {
+            !nativeAd.headline.isNullOrEmpty() -> nativeAd.headline
+            !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
+            !nativeAd.store.isNullOrEmpty() -> nativeAd.store
+            else -> ""
         }
+        primary.text = headlineText
+        primaryFallback.text = headlineText
 
         ad.setTextColor(ctaButtonColor)
         ad.background = GradientDrawable().apply {
@@ -613,15 +625,15 @@ class NativeAdTemplateView @JvmOverloads constructor(
             else -> "ˑˑˑ"
         }
 
-        nativeAd.callToAction?.let { callToAction ->
-            cta.text = callToAction
-            ctaFallback.text = callToAction
-        }
+        val callToActionText = nativeAd.callToAction ?: ""
+        cta.text = callToActionText
+        ctaFallback.text = callToActionText
 
         nativeAd.body?.let { body ->
             description.text = body
             description.visibility = View.VISIBLE
         } ?: run {
+            description.text = ""
             description.visibility = View.GONE
         }
 
@@ -630,15 +642,23 @@ class NativeAdTemplateView @JvmOverloads constructor(
             icon.setImageDrawable(drawable)
         } ?: run {
             iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
         }
 
-        nativeAd.mediaContent?.let { mediaContent ->
+        val mediaContent = nativeAd.mediaContent
+        if (hasDisplayableMedia(mediaContent)) {
+            adView.callToActionView = ctaContainer
+            adView.headlineView = primary
             adMedia.mediaContent = mediaContent
             adMedia.visibility = View.VISIBLE
             adImageContainer.visibility = View.VISIBLE
             fallbackContainer.visibility = View.GONE
             applyGradientOverlay(gradientOverlay)
-        } ?: run {
+        } else {
+            adView.callToActionView = ctaContainerFallback
+            adView.headlineView = primaryFallback
+            adMedia.mediaContent = null
+            adMedia.visibility = View.GONE
             adImageContainer.visibility = View.GONE
             fallbackContainer.visibility = View.VISIBLE
         }
@@ -769,5 +789,9 @@ class NativeAdTemplateView @JvmOverloads constructor(
             }
         }
         view.background = shapeDrawable
+    }
+
+    private fun hasDisplayableMedia(mediaContent: MediaContent): Boolean {
+        return mediaContent.hasVideoContent || mediaContent.mainImage != null
     }
 }

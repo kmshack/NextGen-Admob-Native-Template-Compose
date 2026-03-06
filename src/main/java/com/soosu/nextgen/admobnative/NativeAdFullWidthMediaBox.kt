@@ -57,21 +57,25 @@ fun NativeAdFullWidthMediaBox(
             ) {
 
                 val adView = nativeAdView.also { adView ->
-                    adView.callToActionView = ctaContainer
-                    adView.headlineView = primary
                     adView.iconView = icon
                     adView.bodyView = description
                 }
 
                 // Configure CTA button colors
                 ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
+                ctaContainerFallback.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
                 cta.setTextColor(ctaTxtColor)
+                ctaFallback.setTextColor(ctaTxtColor)
 
                 // Set headline
-                nativeAd.headline?.let { headline ->
-                    primary.text = headline
-                    primaryFallback.text = headline
+                val headlineText = when {
+                    !nativeAd.headline.isNullOrEmpty() -> nativeAd.headline
+                    !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
+                    !nativeAd.store.isNullOrEmpty() -> nativeAd.store
+                    else -> ""
                 }
+                primary.text = headlineText
+                primaryFallback.text = headlineText
 
                 // Set AD badge with semi-transparent background for overlay style
                 ad.setTextColor(ctaBgColor)
@@ -90,16 +94,16 @@ fun NativeAdFullWidthMediaBox(
                 }
 
                 // Set call to action
-                nativeAd.callToAction?.let { callToAction ->
-                    cta.text = callToAction
-                    ctaFallback.text = callToAction
-                }
+                val callToActionText = nativeAd.callToAction ?: ""
+                cta.text = callToActionText
+                ctaFallback.text = callToActionText
 
                 // Set body description (for fallback)
                 nativeAd.body?.let { body ->
                     description.text = body
                     description.visibility = View.VISIBLE
                 } ?: run {
+                    description.text = ""
                     description.visibility = View.GONE
                 }
 
@@ -109,10 +113,15 @@ fun NativeAdFullWidthMediaBox(
                     icon.setImageDrawable(drawable)
                 } ?: run {
                     iconContainer.visibility = View.GONE
+                    icon.setImageDrawable(null)
                 }
 
                 // Set media content with gradient overlay
-                nativeAd.mediaContent.let { mediaContent ->
+                val mediaContent = nativeAd.mediaContent
+                val hasDisplayableMedia = mediaContent.hasVideoContent || mediaContent.mainImage != null
+                if (hasDisplayableMedia) {
+                    adView.callToActionView = ctaContainer
+                    adView.headlineView = primary
                     adMedia.mediaContent = mediaContent
                     adMedia.visibility = View.VISIBLE
                     adImageContainer.visibility = View.VISIBLE
@@ -120,9 +129,16 @@ fun NativeAdFullWidthMediaBox(
 
                     // Apply gradient overlay
                     applyGradientOverlay(gradientOverlay)
+                } else {
+                    adView.callToActionView = ctaContainerFallback
+                    adView.headlineView = primaryFallback
+                    adMedia.mediaContent = null
+                    adMedia.visibility = View.GONE
+                    adImageContainer.visibility = View.GONE
+                    fallbackContainer.visibility = View.VISIBLE
                 }
 
-                adView.registerNativeAd(nativeAd, adMedia)
+                adView.registerNativeAd(nativeAd, if (hasDisplayableMedia) adMedia else null)
 
             }
 
