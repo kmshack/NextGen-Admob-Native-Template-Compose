@@ -12,6 +12,7 @@ class AdmobConfig private constructor(
     val preloadOnBackground: Boolean,
     val shouldSuppressAds: () -> Boolean,
     val debugLogging: Boolean,
+    val maxAdContentRating: String?,
 ) {
     class Builder(private val admobAppId: String) {
         private var splashAdUnitId: String? = null
@@ -24,6 +25,7 @@ class AdmobConfig private constructor(
         private var preloadOnBackground: Boolean = true
         private var shouldSuppressAds: () -> Boolean = { false }
         private var debugLogging: Boolean = false
+        private var maxAdContentRating: String? = null
 
         fun splashAdUnitId(id: String?) = apply { this.splashAdUnitId = id }
         fun foregroundAdUnitId(id: String?) = apply { this.foregroundAdUnitId = id }
@@ -35,6 +37,7 @@ class AdmobConfig private constructor(
         fun preloadOnBackground(enabled: Boolean) = apply { this.preloadOnBackground = enabled }
         fun shouldSuppressAds(predicate: () -> Boolean) = apply { this.shouldSuppressAds = predicate }
         fun debugLogging(enabled: Boolean) = apply { this.debugLogging = enabled }
+        fun maxAdContentRating(rating: String?) = apply { this.maxAdContentRating = rating }
 
         fun build() = AdmobConfig(
             admobAppId = admobAppId,
@@ -48,6 +51,14 @@ class AdmobConfig private constructor(
             preloadOnBackground = preloadOnBackground,
             shouldSuppressAds = shouldSuppressAds,
             debugLogging = debugLogging,
+            maxAdContentRating = maxAdContentRating,
         )
+    }
+
+    companion object {
+        const val MAX_AD_CONTENT_RATING_G = "G"
+        const val MAX_AD_CONTENT_RATING_PG = "PG"
+        const val MAX_AD_CONTENT_RATING_T = "T"
+        const val MAX_AD_CONTENT_RATING_MA = "MA"
     }
 }

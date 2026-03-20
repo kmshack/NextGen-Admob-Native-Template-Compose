@@ -35,7 +35,7 @@ object SplashAdLoader {
         }
 
         // 1. Initialize SDK (동의 수집은 앱 측에서 별도 처리)
-        AdmobInitializer.initialize(activity, config.admobAppId)
+        AdmobInitializer.initialize(activity, config.admobAppId, config)
 
         // 2. Load ad with timeout
         val ad = withTimeoutOrNull(config.splashAdLoadTimeoutMs) {
