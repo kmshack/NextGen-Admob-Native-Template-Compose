@@ -29,6 +29,19 @@ object AdmobInitializer {
         mutex.withLock {
             if (initialized) return
 
+            withContext(Dispatchers.IO) {
+                suspendCancellableCoroutine { cont ->
+                    val config = InitializationConfig.Builder(admobAppId).build()
+                    MobileAds.initialize(context.applicationContext, config) {
+                        Log.d(TAG, "MobileAds initialized")
+                        initialized = true
+                        if (cont.isActive) {
+                            cont.resume(Unit)
+                        }
+                    }
+                }
+            }
+
             admobConfig?.maxAdContentRating?.let { rating ->
                 val maxRating = when (rating) {
                     AdmobConfig.MAX_AD_CONTENT_RATING_G -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_G
@@ -43,19 +56,6 @@ object AdmobInitializer {
                         .build()
                     MobileAds.setRequestConfiguration(requestConfig)
                     Log.d(TAG, "Set maxAdContentRating: $rating")
-                }
-            }
-
-            withContext(Dispatchers.IO) {
-                suspendCancellableCoroutine { cont ->
-                    val config = InitializationConfig.Builder(admobAppId).build()
-                    MobileAds.initialize(context.applicationContext, config) {
-                        Log.d(TAG, "MobileAds initialized")
-                        initialized = true
-                        if (cont.isActive) {
-                            cont.resume(Unit)
-                        }
-                    }
                 }
             }
         }
