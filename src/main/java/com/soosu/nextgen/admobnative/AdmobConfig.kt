@@ -13,6 +13,8 @@ class AdmobConfig private constructor(
     val shouldSuppressAds: () -> Boolean,
     val debugLogging: Boolean,
     val maxAdContentRating: String?,
+    val tagForChildDirectedTreatment: Boolean?,
+    val tagForUnderAgeOfConsent: Boolean?,
 ) {
     class Builder(private val admobAppId: String) {
         private var splashAdUnitId: String? = null
@@ -26,6 +28,8 @@ class AdmobConfig private constructor(
         private var shouldSuppressAds: () -> Boolean = { false }
         private var debugLogging: Boolean = false
         private var maxAdContentRating: String? = null
+        private var tagForChildDirectedTreatment: Boolean? = null
+        private var tagForUnderAgeOfConsent: Boolean? = null
 
         fun splashAdUnitId(id: String?) = apply { this.splashAdUnitId = id }
         fun foregroundAdUnitId(id: String?) = apply { this.foregroundAdUnitId = id }
@@ -38,6 +42,8 @@ class AdmobConfig private constructor(
         fun shouldSuppressAds(predicate: () -> Boolean) = apply { this.shouldSuppressAds = predicate }
         fun debugLogging(enabled: Boolean) = apply { this.debugLogging = enabled }
         fun maxAdContentRating(rating: String?) = apply { this.maxAdContentRating = rating }
+        fun tagForChildDirectedTreatment(tag: Boolean?) = apply { this.tagForChildDirectedTreatment = tag }
+        fun tagForUnderAgeOfConsent(tag: Boolean?) = apply { this.tagForUnderAgeOfConsent = tag }
 
         fun build() = AdmobConfig(
             admobAppId = admobAppId,
@@ -52,6 +58,8 @@ class AdmobConfig private constructor(
             shouldSuppressAds = shouldSuppressAds,
             debugLogging = debugLogging,
             maxAdContentRating = maxAdContentRating,
+            tagForChildDirectedTreatment = tagForChildDirectedTreatment,
+            tagForUnderAgeOfConsent = tagForUnderAgeOfConsent,
         )
     }
 

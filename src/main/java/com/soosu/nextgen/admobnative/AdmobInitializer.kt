@@ -42,20 +42,47 @@ object AdmobInitializer {
                 }
             }
 
-            admobConfig?.maxAdContentRating?.let { rating ->
-                val maxRating = when (rating) {
-                    AdmobConfig.MAX_AD_CONTENT_RATING_G -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_G
-                    AdmobConfig.MAX_AD_CONTENT_RATING_PG -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_PG
-                    AdmobConfig.MAX_AD_CONTENT_RATING_T -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_T
-                    AdmobConfig.MAX_AD_CONTENT_RATING_MA -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_MA
-                    else -> null
+            admobConfig?.let { config ->
+                val builder = RequestConfiguration.Builder()
+                var hasConfig = false
+
+                config.maxAdContentRating?.let { rating ->
+                    val maxRating = when (rating) {
+                        AdmobConfig.MAX_AD_CONTENT_RATING_G -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_G
+                        AdmobConfig.MAX_AD_CONTENT_RATING_PG -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_PG
+                        AdmobConfig.MAX_AD_CONTENT_RATING_T -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_T
+                        AdmobConfig.MAX_AD_CONTENT_RATING_MA -> RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_MA
+                        else -> null
+                    }
+                    if (maxRating != null) {
+                        builder.setMaxAdContentRating(maxRating)
+                        hasConfig = true
+                        Log.d(TAG, "Set maxAdContentRating: $rating")
+                    }
                 }
-                if (maxRating != null) {
-                    val requestConfig = RequestConfiguration.Builder()
-                        .setMaxAdContentRating(maxRating)
-                        .build()
-                    MobileAds.setRequestConfiguration(requestConfig)
-                    Log.d(TAG, "Set maxAdContentRating: $rating")
+
+                config.tagForChildDirectedTreatment?.let { tag ->
+                    val tagValue = if (tag)
+                        RequestConfiguration.TagForChildDirectedTreatment.TAG_FOR_CHILD_DIRECTED_TREATMENT_TRUE
+                    else
+                        RequestConfiguration.TagForChildDirectedTreatment.TAG_FOR_CHILD_DIRECTED_TREATMENT_FALSE
+                    builder.setTagForChildDirectedTreatment(tagValue)
+                    hasConfig = true
+                    Log.d(TAG, "Set tagForChildDirectedTreatment: $tag")
+                }
+
+                config.tagForUnderAgeOfConsent?.let { tag ->
+                    val tagValue = if (tag)
+                        RequestConfiguration.TagForUnderAgeOfConsent.TAG_FOR_UNDER_AGE_OF_CONSENT_TRUE
+                    else
+                        RequestConfiguration.TagForUnderAgeOfConsent.TAG_FOR_UNDER_AGE_OF_CONSENT_FALSE
+                    builder.setTagForUnderAgeOfConsent(tagValue)
+                    hasConfig = true
+                    Log.d(TAG, "Set tagForUnderAgeOfConsent: $tag")
+                }
+
+                if (hasConfig) {
+                    MobileAds.setRequestConfiguration(builder.build())
                 }
             }
         }
