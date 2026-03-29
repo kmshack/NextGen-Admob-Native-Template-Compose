@@ -15,6 +15,7 @@ class AdmobConfig private constructor(
     val maxAdContentRating: String?,
     val tagForChildDirectedTreatment: Boolean?,
     val tagForUnderAgeOfConsent: Boolean?,
+    val keywords: List<String>,
 ) {
     class Builder(private val admobAppId: String) {
         private var splashAdUnitId: String? = null
@@ -30,6 +31,7 @@ class AdmobConfig private constructor(
         private var maxAdContentRating: String? = null
         private var tagForChildDirectedTreatment: Boolean? = null
         private var tagForUnderAgeOfConsent: Boolean? = null
+        private val keywords: MutableList<String> = mutableListOf()
 
         fun splashAdUnitId(id: String?) = apply { this.splashAdUnitId = id }
         fun foregroundAdUnitId(id: String?) = apply { this.foregroundAdUnitId = id }
@@ -44,6 +46,8 @@ class AdmobConfig private constructor(
         fun maxAdContentRating(rating: String?) = apply { this.maxAdContentRating = rating }
         fun tagForChildDirectedTreatment(tag: Boolean?) = apply { this.tagForChildDirectedTreatment = tag }
         fun tagForUnderAgeOfConsent(tag: Boolean?) = apply { this.tagForUnderAgeOfConsent = tag }
+        fun addKeyword(keyword: String) = apply { this.keywords.add(keyword) }
+        fun addKeywords(keywords: List<String>) = apply { this.keywords.addAll(keywords) }
 
         fun build() = AdmobConfig(
             admobAppId = admobAppId,
@@ -60,6 +64,7 @@ class AdmobConfig private constructor(
             maxAdContentRating = maxAdContentRating,
             tagForChildDirectedTreatment = tagForChildDirectedTreatment,
             tagForUnderAgeOfConsent = tagForUnderAgeOfConsent,
+            keywords = keywords.toList(),
         )
     }
 

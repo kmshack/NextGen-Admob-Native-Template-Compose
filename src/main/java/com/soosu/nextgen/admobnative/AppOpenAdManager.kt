@@ -21,6 +21,26 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     private var lastAdShownTime: Long = 0
     private var lastAdLoadAttemptTime: Long = 0
 
+    private val runtimeKeywords: MutableList<String> = mutableListOf()
+
+    fun addKeyword(keyword: String) {
+        runtimeKeywords.add(keyword)
+    }
+
+    fun addKeywords(keywords: List<String>) {
+        runtimeKeywords.addAll(keywords)
+    }
+
+    fun removeKeyword(keyword: String) {
+        runtimeKeywords.remove(keyword)
+    }
+
+    fun clearKeywords() {
+        runtimeKeywords.clear()
+    }
+
+    fun getKeywords(): List<String> = config.keywords + runtimeKeywords
+
     fun isShowingAd(): Boolean = isShowingAd
 
     fun isAdAvailable(): Boolean {
@@ -53,7 +73,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         isLoadingAd = true
         lastAdLoadAttemptTime = now
 
-        val request = AdRequest.Builder(adUnitId).build()
+        val request = AdRequest.Builder(adUnitId).applyKeywords(getKeywords()).build()
         AppOpenAd.load(
             request,
             object : AdLoadCallback<AppOpenAd> {
@@ -163,7 +183,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         isLoadingAd = true
         lastAdLoadAttemptTime = System.currentTimeMillis()
 
-        val request = AdRequest.Builder(adUnitId).build()
+        val request = AdRequest.Builder(adUnitId).applyKeywords(getKeywords()).build()
         AppOpenAd.load(
             request,
             object : AdLoadCallback<AppOpenAd> {
@@ -187,4 +207,11 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     companion object {
         private const val TAG = "AppOpenAdManager"
     }
+}
+
+private fun <T : com.google.android.libraries.ads.mobile.sdk.common.BaseRequestBuilder<T>> T.applyKeywords(
+    keywords: List<String>,
+): T {
+    keywords.forEach { addKeyword(it) }
+    return this
 }

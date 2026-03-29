@@ -39,7 +39,7 @@ object SplashAdLoader {
 
         // 2. Load ad with timeout
         val ad = withTimeoutOrNull(config.splashAdLoadTimeoutMs) {
-            loadAd(adUnitId)
+            loadAd(adUnitId, config.keywords)
         }
 
         if (ad == null) {
@@ -53,8 +53,11 @@ object SplashAdLoader {
 
     private suspend fun loadAd(
         adUnitId: String,
+        keywords: List<String> = emptyList(),
     ): AppOpenAd? = suspendCancellableCoroutine { cont ->
-        val request = AdRequest.Builder(adUnitId).build()
+        val request = AdRequest.Builder(adUnitId).apply {
+            keywords.forEach { addKeyword(it) }
+        }.build()
         AppOpenAd.load(
             request,
             object : AdLoadCallback<AppOpenAd> {
