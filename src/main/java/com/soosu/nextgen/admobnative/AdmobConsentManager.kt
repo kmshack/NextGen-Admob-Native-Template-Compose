@@ -19,6 +19,9 @@ class AdmobConsentManager(context: Context) {
     val canRequestAds: Boolean
         get() = consentInformation.canRequestAds()
 
+    val consentStatus: Int
+        get() = consentInformation.consentStatus
+
     val isPrivacyOptionsRequired: Boolean
         get() = consentInformation.privacyOptionsRequirementStatus ==
                 ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
