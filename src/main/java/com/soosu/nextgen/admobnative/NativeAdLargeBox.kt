@@ -106,7 +106,12 @@ fun NativeAdLargeBox(
                     adMedia.post {
                         val width = adMedia.width
                         if (width > 0 && mediaContent.aspectRatio > 0) {
-                            val height = (width / mediaContent.aspectRatio).toInt()
+                            var height = (width / mediaContent.aspectRatio).toInt()
+                            // 미디어 높이를 너비의 1.2배로 제한 (세로가 긴 이미지 잘림 방지)
+                            val maxHeight = (width * 1.2f).toInt()
+                            if (height > maxHeight) {
+                                height = maxHeight
+                            }
                             adMedia.layoutParams = adMedia.layoutParams.apply {
                                 this.height = height
                             }
