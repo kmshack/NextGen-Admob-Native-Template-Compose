@@ -5,6 +5,7 @@ import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -102,16 +103,12 @@ fun NativeAdLargeBox(
                         "NativeAdLargeBox",
                         "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
                     )
+                    adMedia.imageScaleType = ImageView.ScaleType.FIT_CENTER
                     adMedia.mediaContent = mediaContent
                     adMedia.post {
                         val width = adMedia.width
                         if (width > 0 && mediaContent.aspectRatio > 0) {
-                            var height = (width / mediaContent.aspectRatio).toInt()
-                            // 미디어 높이를 너비의 1.2배로 제한 (세로가 긴 이미지 잘림 방지)
-                            val maxHeight = (width * 1.2f).toInt()
-                            if (height > maxHeight) {
-                                height = maxHeight
-                            }
+                            val height = (width / mediaContent.aspectRatio).toInt()
                             adMedia.layoutParams = adMedia.layoutParams.apply {
                                 this.height = height
                             }
