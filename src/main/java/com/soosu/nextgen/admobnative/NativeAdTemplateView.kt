@@ -17,7 +17,6 @@ import android.widget.RatingBar
 import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
-import com.google.android.libraries.ads.mobile.sdk.nativead.MediaContent
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView
@@ -236,24 +235,21 @@ class NativeAdTemplateView @JvmOverloads constructor(
 
         nativeAd.headline?.let { primary.text = it }
 
-        nativeAd.icon?.drawable?.let { drawable ->
+        nativeAd.iconImageDrawable()?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
             icon.visibility = View.VISIBLE
             icon.setImageDrawable(drawable)
         } ?: run {
             iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
         }
 
-        // Set media content for image display
-        nativeAd.mediaContent?.let { mediaContent ->
-            mediaContent.mainImage?.let { drawable ->
-                adImageContainer.visibility = View.VISIBLE
-                adImage.setImageDrawable(drawable)
-            } ?: run {
-                adImageContainer.visibility = View.GONE
-            }
+        nativeAd.primaryImageDrawable()?.let { drawable ->
+            adImageContainer.visibility = View.VISIBLE
+            adImage.setImageDrawable(drawable)
         } ?: run {
             adImageContainer.visibility = View.GONE
+            adImage.setImageDrawable(null)
         }
 
         adView.registerNativeAd(nativeAd, null)
@@ -301,12 +297,13 @@ class NativeAdTemplateView @JvmOverloads constructor(
         nativeAd.headline?.let { primary.text = it }
         nativeAd.callToAction?.let { cta.text = it }
 
-        nativeAd.icon?.drawable?.let { drawable ->
+        nativeAd.iconImageDrawable()?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
             icon.visibility = View.VISIBLE
             icon.setImageDrawable(drawable)
         } ?: run {
             iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
         }
 
         nativeAd.body?.let { body ->
@@ -316,7 +313,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContent?.let { mediaContent ->
+        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
             adMedia.mediaContent = mediaContent
             adMedia.post {
                 val width = adMedia.width
@@ -383,7 +380,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         primary.text = nativeAd.headline ?: ""
         cta.text = nativeAd.callToAction ?: ""
 
-        nativeAd.icon?.drawable?.let { drawable ->
+        nativeAd.iconImageDrawable()?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
             icon.visibility = View.VISIBLE
             icon.setImageDrawable(drawable)
@@ -400,7 +397,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContent?.let { mediaContent ->
+        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
             adMedia.mediaContent = mediaContent
             adMedia.post {
                 val width = adMedia.width
@@ -414,6 +411,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             adMedia.visibility = View.VISIBLE
             adImageContainer.visibility = View.VISIBLE
         } ?: run {
+            adMedia.mediaContent = null
             adMedia.visibility = View.GONE
             adImageContainer.visibility = View.GONE
         }
@@ -442,15 +440,29 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val cta = adView.findViewById<TextView>(R.id.cta)
         val bar = adView.findViewById<TextView>(R.id.bar)
         val arrow = adView.findViewById<ImageView>(R.id.arrow)
+        val icon = adView.findViewById<ImageView>(R.id.icon)
+        val iconContainer = adView.findViewById<View>(R.id.icon_container)
 
         adView.callToActionView = background
         adView.headlineView = primary
+        adView.iconView = icon
 
         background.setBackgroundColor(backgroundColor)
         primary.setTextColor(textColor)
         cta.setTextColor(textColor)
         bar.setTextColor(textColor)
         arrow.setColorFilter(textColor)
+
+        val imageDrawable = nativeAd.primaryImageDrawable()
+
+        if (imageDrawable != null) {
+            iconContainer.visibility = View.VISIBLE
+            icon.visibility = View.VISIBLE
+            icon.setImageDrawable(imageDrawable)
+        } else {
+            iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
+        }
 
         nativeAd.headline?.let { primary.text = it }
         nativeAd.callToAction?.let { cta.text = it }
@@ -491,12 +503,13 @@ class NativeAdTemplateView @JvmOverloads constructor(
 
         nativeAd.headline?.let { primary.text = it }
 
-        nativeAd.icon?.drawable?.let { drawable ->
+        nativeAd.iconImageDrawable()?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
             icon.visibility = View.VISIBLE
             icon.setImageDrawable(drawable)
         } ?: run {
             iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
         }
 
         adView.registerNativeAd(nativeAd, null)
@@ -539,11 +552,12 @@ class NativeAdTemplateView @JvmOverloads constructor(
         nativeAd.body?.let { primary.text = it }
         nativeAd.callToAction?.let { cta.text = it }
 
-        nativeAd.icon?.drawable?.let { drawable ->
+        nativeAd.iconImageDrawable()?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
             icon.setImageDrawable(drawable)
         } ?: run {
             iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
         }
 
         nativeAd.body?.let { body ->
@@ -557,7 +571,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContent?.let { mediaContent ->
+        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
             adMedia.mediaContent = mediaContent
             adMedia.post {
                 val width = adMedia.width
@@ -571,6 +585,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             adMedia.visibility = View.VISIBLE
             adImageContainer.visibility = View.VISIBLE
         } ?: run {
+            adMedia.mediaContent = null
             adMedia.visibility = View.GONE
             adImageContainer.visibility = View.GONE
         }
@@ -637,7 +652,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.icon?.drawable?.let { drawable ->
+        nativeAd.iconImageDrawable()?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
             icon.setImageDrawable(drawable)
         } ?: run {
@@ -645,8 +660,8 @@ class NativeAdTemplateView @JvmOverloads constructor(
             icon.setImageDrawable(null)
         }
 
-        val mediaContent = nativeAd.mediaContent
-        if (hasDisplayableMedia(mediaContent)) {
+        val mediaContent = nativeAd.mediaContentWithImageFallback()
+        if (mediaContent != null) {
             adView.callToActionView = ctaContainer
             adView.headlineView = primary
             adMedia.mediaContent = mediaContent
@@ -716,11 +731,12 @@ class NativeAdTemplateView @JvmOverloads constructor(
 
         nativeAd.callToAction?.let { cta.text = it } ?: run { cta.text = "Install" }
 
-        nativeAd.icon?.drawable?.let { drawable ->
+        nativeAd.iconImageDrawable()?.let { drawable ->
             iconContainer.visibility = View.VISIBLE
             icon.setImageDrawable(drawable)
         } ?: run {
             iconContainer.visibility = View.GONE
+            icon.setImageDrawable(null)
         }
 
         nativeAd.starRating?.let { rating ->
@@ -750,7 +766,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContent?.let { mediaContent ->
+        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
             adMedia.mediaContent = mediaContent
             adMedia.post {
                 val width = adMedia.width
@@ -764,6 +780,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             adMedia.visibility = View.VISIBLE
             adImageContainer.visibility = View.VISIBLE
         } ?: run {
+            adMedia.mediaContent = null
             adMedia.visibility = View.GONE
             adImageContainer.visibility = View.GONE
         }
@@ -791,7 +808,4 @@ class NativeAdTemplateView @JvmOverloads constructor(
         view.background = shapeDrawable
     }
 
-    private fun hasDisplayableMedia(mediaContent: MediaContent): Boolean {
-        return mediaContent.hasVideoContent || mediaContent.mainImage != null
-    }
 }

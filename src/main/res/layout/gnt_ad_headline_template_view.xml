@@ -44,6 +44,24 @@
                 android:textSize="9sp"
                 android:textStyle="bold" />
 
+            <FrameLayout
+                android:id="@+id/icon_container"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop"
+                    tools:src="@drawable/round_chevron_right_24" />
+
+            </FrameLayout>
+
             <TextView
                 android:id="@+id/primary"
                 android:layout_width="wrap_content"

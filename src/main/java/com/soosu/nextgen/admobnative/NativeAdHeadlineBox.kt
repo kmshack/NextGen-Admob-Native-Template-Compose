@@ -3,6 +3,7 @@ package com.soosu.nextgen.admobnative
 import android.annotation.SuppressLint
 import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -42,6 +43,7 @@ fun NativeAdHeadlineBox(
                         val adView = nativeAdView.also { adView ->
                             adView.callToActionView = background
                             adView.headlineView = primary
+                            adView.iconView = icon
                         }
 
                         background.setBackgroundColor(bgColor)
@@ -49,6 +51,17 @@ fun NativeAdHeadlineBox(
                         cta.setTextColor(txtColor)
                         bar.setTextColor(txtColor)
                         arrow.setColorFilter(txtColor)
+
+                        val imageDrawable = nativeAd.primaryImageDrawable()
+
+                        if (imageDrawable != null) {
+                            iconContainer.visibility = View.VISIBLE
+                            icon.visibility = View.VISIBLE
+                            icon.setImageDrawable(imageDrawable)
+                        } else {
+                            iconContainer.visibility = View.GONE
+                            icon.setImageDrawable(null)
+                        }
 
                         // 화면 너비를 기반으로 primary의 maxWidth를 동적으로 설정
                         view.post {

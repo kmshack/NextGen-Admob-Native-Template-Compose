@@ -64,24 +64,21 @@ fun NativeAdSmallBox(
                     else -> "ˑˑˑ"
                 }
 
-                nativeAd.icon?.drawable?.let { drawable ->
+                nativeAd.iconImageDrawable()?.let { drawable ->
                     iconContainer.visibility = View.VISIBLE
                     icon.visibility = View.VISIBLE
                     icon.setImageDrawable(drawable)
                 } ?: run {
                     iconContainer.visibility = View.GONE
+                    icon.setImageDrawable(null)
                 }
 
-                // Set media content for image display
-                nativeAd.mediaContent?.let { mediaContent ->
-                    mediaContent.mainImage?.let { drawable ->
-                        adImageContainer.visibility = View.VISIBLE
-                        adImage.setImageDrawable(drawable)
-                    } ?: run {
-                        adImageContainer.visibility = View.GONE
-                    }
+                nativeAd.primaryImageDrawable()?.let { drawable ->
+                    adImageContainer.visibility = View.VISIBLE
+                    adImage.setImageDrawable(drawable)
                 } ?: run {
                     adImageContainer.visibility = View.GONE
+                    adImage.setImageDrawable(null)
                 }
 
                 adView.registerNativeAd(nativeAd, null)

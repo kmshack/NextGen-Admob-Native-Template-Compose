@@ -64,9 +64,7 @@ fun NativeAdIconSmallBox(
                     primary.text = headline
                 }
 
-                // Fallback chain: icon -> mediaContent.mainImage -> images[0]
-                val iconDrawable = nativeAd.icon?.drawable
-                    ?: nativeAd.mediaContent?.mainImage
+                val iconDrawable = nativeAd.iconImageDrawable()
 
                 if (iconDrawable != null) {
                     iconContainer.visibility = View.VISIBLE

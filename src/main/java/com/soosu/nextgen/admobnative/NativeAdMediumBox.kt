@@ -71,12 +71,13 @@ fun NativeAdMediumBox(
                     cta.text = callToAction
                 }
 
-                nativeAd.icon?.drawable?.let { drawable ->
+                nativeAd.iconImageDrawable()?.let { drawable ->
                     iconContainer.visibility = View.VISIBLE
                     icon.visibility = View.VISIBLE
                     icon.setImageDrawable(drawable)
                 } ?: run {
                     iconContainer.visibility = View.GONE
+                    icon.setImageDrawable(null)
                 }
 
                 nativeAd.body?.let { body ->
@@ -87,7 +88,7 @@ fun NativeAdMediumBox(
                 }
 
                 // Set media content (video or image)
-                nativeAd.mediaContent?.let { mediaContent ->
+                nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
                     Log.d(
                         "NativeAdMediumBox",
                         "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
@@ -105,6 +106,7 @@ fun NativeAdMediumBox(
                     adMedia.visibility = View.VISIBLE
                     adImageContainer.visibility = View.VISIBLE
                 } ?: run {
+                    adMedia.mediaContent = null
                     adMedia.visibility = View.GONE
                     adImageContainer.visibility = View.GONE
                 }

@@ -120,11 +120,12 @@ fun NativeAdAppInstallBox(
                 }
 
                 // Set icon
-                nativeAd.icon?.drawable?.let { drawable ->
+                nativeAd.iconImageDrawable()?.let { drawable ->
                     iconContainer.visibility = View.VISIBLE
                     icon.setImageDrawable(drawable)
                 } ?: run {
                     iconContainer.visibility = View.GONE
+                    icon.setImageDrawable(null)
                 }
 
                 // Set star rating
@@ -159,7 +160,7 @@ fun NativeAdAppInstallBox(
                 }
 
                 // Set media content (screenshots)
-                nativeAd.mediaContent?.let { mediaContent ->
+                nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
                     Log.d(
                         "NativeAdAppInstallBox",
                         "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
@@ -177,6 +178,7 @@ fun NativeAdAppInstallBox(
                     adMedia.visibility = View.VISIBLE
                     adImageContainer.visibility = View.VISIBLE
                 } ?: run {
+                    adMedia.mediaContent = null
                     adMedia.visibility = View.GONE
                     adImageContainer.visibility = View.GONE
                 }

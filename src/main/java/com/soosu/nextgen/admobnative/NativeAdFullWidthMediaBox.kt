@@ -108,7 +108,7 @@ fun NativeAdFullWidthMediaBox(
                 }
 
                 // Set icon (for fallback)
-                nativeAd.icon?.drawable?.let { drawable ->
+                nativeAd.iconImageDrawable()?.let { drawable ->
                     iconContainer.visibility = View.VISIBLE
                     icon.setImageDrawable(drawable)
                 } ?: run {
@@ -117,9 +117,8 @@ fun NativeAdFullWidthMediaBox(
                 }
 
                 // Set media content with gradient overlay
-                val mediaContent = nativeAd.mediaContent
-                val hasDisplayableMedia = mediaContent.hasVideoContent || mediaContent.mainImage != null
-                if (hasDisplayableMedia) {
+                val mediaContent = nativeAd.mediaContentWithImageFallback()
+                if (mediaContent != null) {
                     adView.callToActionView = ctaContainer
                     adView.headlineView = primary
                     adMedia.mediaContent = mediaContent
@@ -138,7 +137,7 @@ fun NativeAdFullWidthMediaBox(
                     fallbackContainer.visibility = View.VISIBLE
                 }
 
-                adView.registerNativeAd(nativeAd, if (hasDisplayableMedia) adMedia else null)
+                adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
 
             }
 

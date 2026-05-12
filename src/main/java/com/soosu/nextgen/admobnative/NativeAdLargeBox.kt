@@ -81,12 +81,13 @@ fun NativeAdLargeBox(
                 }
 
                 // Set icon
-                nativeAd.icon?.drawable?.let { drawable ->
+                nativeAd.iconImageDrawable()?.let { drawable ->
                     iconContainer.visibility = View.VISIBLE
                     icon.visibility = View.VISIBLE
                     icon.setImageDrawable(drawable)
                 } ?: run {
                     iconContainer.visibility = View.GONE
+                    icon.setImageDrawable(null)
                 }
 
                 // Set body description
@@ -98,7 +99,7 @@ fun NativeAdLargeBox(
                 }
 
                 // Set media content (video or image)
-                nativeAd.mediaContent.let { mediaContent ->
+                nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
                     Log.d(
                         "NativeAdLargeBox",
                         "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
@@ -117,6 +118,7 @@ fun NativeAdLargeBox(
                     adMedia.visibility = View.VISIBLE
                     adImageContainer.visibility = View.VISIBLE
                 } ?: run {
+                    adMedia.mediaContent = null
                     adMedia.visibility = View.GONE
                     adImageContainer.visibility = View.GONE
                 }
