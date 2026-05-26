@@ -808,7 +808,7 @@ If you're migrating from the legacy Google Play Services Ads SDK, here are the k
 implementation("com.google.android.gms:play-services-ads:24.x.x")
 
 // Next-Gen SDK
-implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.22.0-beta04")
+implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.1.0")
 ```
 
 ### Initialization
