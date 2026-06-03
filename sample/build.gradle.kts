@@ -70,7 +70,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
 
     // Google AdMob Next-Gen SDK
-    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.1.0")
+    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.25.0-beta01")
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling")
