@@ -2,6 +2,8 @@ package com.soosu.nextgen.admobnative.sample
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +32,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
@@ -55,6 +59,7 @@ import com.soosu.nextgen.admobnative.NativeAdIconSmallBox
 import com.soosu.nextgen.admobnative.NativeAdLargeBox
 import com.soosu.nextgen.admobnative.NativeAdMediumBox
 import com.soosu.nextgen.admobnative.NativeAdSmallBox
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -121,9 +126,14 @@ fun MainScreen() {
 
     // Test ad unit ID for native ads
     val testAdUnitId = "ca-app-pub-3940256099942544/2247696110"
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val nativeAds = remember { mutableListOf<NativeAd>() }
+    val isDisposed = remember { AtomicBoolean(false) }
 
-    // Load headline ad
-    LaunchedEffect(Unit) {
+    fun loadNativeAd(
+        onLoaded: (NativeAd) -> Unit,
+        onFailed: (LoadAdError) -> Unit
+    ) {
         val adRequest = NativeAdRequest.Builder(
             testAdUnitId,
             listOf(NativeAd.NativeAdType.NATIVE)
@@ -131,155 +141,144 @@ fun MainScreen() {
 
         NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
             override fun onNativeAdLoaded(ad: NativeAd) {
-                headlineAd = ad
-                headlineLoading = false
+                mainHandler.post {
+                    if (isDisposed.get()) {
+                        ad.destroy()
+                    } else {
+                        nativeAds.add(ad)
+                        onLoaded(ad)
+                    }
+                }
             }
 
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                mainHandler.post {
+                    if (!isDisposed.get()) {
+                        onFailed(error)
+                    }
+                }
+            }
+        })
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            isDisposed.set(true)
+            nativeAds.forEach { it.destroy() }
+            nativeAds.clear()
+        }
+    }
+
+    // Load headline ad
+    LaunchedEffect(Unit) {
+        loadNativeAd(
+            onLoaded = { ad ->
+                headlineAd = ad
+                headlineLoading = false
+            },
+            onFailed = { error ->
                 headlineLoading = false
                 headlineError = error.message
             }
-        })
+        )
     }
 
     // Load small ad
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
+        loadNativeAd(
+            onLoaded = { ad ->
                 smallAd = ad
                 smallLoading = false
-            }
-
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            },
+            onFailed = { error ->
                 smallLoading = false
                 smallError = error.message
             }
-        })
+        )
     }
 
     // Load icon small ad
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
+        loadNativeAd(
+            onLoaded = { ad ->
                 iconSmallAd = ad
                 iconSmallLoading = false
-            }
-
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            },
+            onFailed = { error ->
                 iconSmallLoading = false
                 iconSmallError = error.message
             }
-        })
+        )
     }
 
     // Load medium ad
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
+        loadNativeAd(
+            onLoaded = { ad ->
                 mediumAd = ad
                 mediumLoading = false
-            }
-
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            },
+            onFailed = { error ->
                 mediumLoading = false
                 mediumError = error.message
             }
-        })
+        )
     }
 
     // Load large ad
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
+        loadNativeAd(
+            onLoaded = { ad ->
                 largeAd = ad
                 largeLoading = false
-            }
-
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            },
+            onFailed = { error ->
                 largeLoading = false
                 largeError = error.message
             }
-        })
+        )
     }
 
     // Load full width media ad (CTR Optimized)
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
+        loadNativeAd(
+            onLoaded = { ad ->
                 fullWidthMediaAd = ad
                 fullWidthMediaLoading = false
-            }
-
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            },
+            onFailed = { error ->
                 fullWidthMediaLoading = false
                 fullWidthMediaError = error.message
             }
-        })
+        )
     }
 
     // Load content ad (CTR Optimized)
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
+        loadNativeAd(
+            onLoaded = { ad ->
                 contentAd = ad
                 contentLoading = false
-            }
-
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            },
+            onFailed = { error ->
                 contentLoading = false
                 contentError = error.message
             }
-        })
+        )
     }
 
     // Load app install ad (CTR Optimized)
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
+        loadNativeAd(
+            onLoaded = { ad ->
                 appInstallAd = ad
                 appInstallLoading = false
-            }
-
-            override fun onAdFailedToLoad(error: com.google.android.libraries.ads.mobile.sdk.common.LoadAdError) {
+            },
+            onFailed = { error ->
                 appInstallLoading = false
                 appInstallError = error.message
             }
-        })
+        )
     }
 
     Scaffold(

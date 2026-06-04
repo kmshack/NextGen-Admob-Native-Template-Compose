@@ -48,6 +48,7 @@ class ViewSampleActivity : ComponentActivity() {
     private var loadedCount = 0
     private var errorCount = 0
     private val totalAds = 8
+    private var isDestroyed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -107,6 +108,10 @@ class ViewSampleActivity : ComponentActivity() {
         NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
             override fun onNativeAdLoaded(ad: NativeAd) {
                 runOnUiThread {
+                    if (isDestroyed) {
+                        ad.destroy()
+                        return@runOnUiThread
+                    }
                     nativeAds.add(ad)
                     templateView.setNativeAd(ad)
                     progressBar.visibility = View.GONE
@@ -148,6 +153,8 @@ class ViewSampleActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isDestroyed = true
+        nativeAds.forEach { it.destroy() }
         nativeAds.clear()
     }
 }

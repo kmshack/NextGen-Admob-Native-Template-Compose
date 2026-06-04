@@ -39,21 +39,22 @@ android {
 dependencies {
     // Compose BOM
     val composeBom = platform("androidx.compose:compose-bom:2025.06.00")
-    implementation(composeBom)
+    api(composeBom)
 
     // Compose
+    api("androidx.compose.ui:ui")
+    api("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-viewbinding")
 
     // Google AdMob Next-Gen SDK
-    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.25.0-beta01")
+    api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.25.0-beta01")
 
     // UMP SDK
-    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    api("com.google.android.ump:user-messaging-platform:4.0.0")
 
     // Lifecycle (포그라운드 감지)
-    implementation("androidx.lifecycle:lifecycle-process:2.10.0")
+    api("androidx.lifecycle:lifecycle-process:2.10.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")

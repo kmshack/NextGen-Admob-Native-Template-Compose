@@ -54,9 +54,11 @@ class AndroidViewSampleActivity : ComponentActivity() {
     private var mediumAd by mutableStateOf<NativeAd?>(null)
     private var largeAd by mutableStateOf<NativeAd?>(null)
 
+    private val nativeAds = mutableListOf<NativeAd>()
     private var loadedCount = 0
     private var errorCount = 0
     private val totalAds = 8
+    private var isDestroyed = false
 
     private lateinit var statusText: TextView
 
@@ -359,12 +361,20 @@ class AndroidViewSampleActivity : ComponentActivity() {
         NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
             override fun onNativeAdLoaded(ad: NativeAd) {
                 runOnUiThread {
+                    if (isDestroyed) {
+                        ad.destroy()
+                        return@runOnUiThread
+                    }
+                    nativeAds.add(ad)
                     callback(ad, null)
                 }
             }
 
             override fun onAdFailedToLoad(error: LoadAdError) {
                 runOnUiThread {
+                    if (isDestroyed) {
+                        return@runOnUiThread
+                    }
                     callback(null, error.message)
                 }
             }
@@ -392,5 +402,20 @@ class AndroidViewSampleActivity : ComponentActivity() {
                 append("\n\nAll ads processed. Compose components are working correctly inside AndroidView!")
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        isDestroyed = true
+        fullWidthMediaAd = null
+        contentAd = null
+        appInstallAd = null
+        headlineAd = null
+        smallAd = null
+        iconSmallAd = null
+        mediumAd = null
+        largeAd = null
+        nativeAds.forEach { it.destroy() }
+        nativeAds.clear()
     }
 }

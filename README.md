@@ -124,6 +124,8 @@ class MainActivity : ComponentActivity() {
 ### 2. Load and Display a Native Ad
 
 ```kotlin
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.runtime.*
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
@@ -136,6 +138,7 @@ import com.soosu.nextgen.admobnative.NativeAdSmallBox
 fun MyScreen() {
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
     LaunchedEffect(Unit) {
         val adRequest = NativeAdRequest.Builder(
@@ -145,14 +148,24 @@ fun MyScreen() {
 
         NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
             override fun onNativeAdLoaded(ad: NativeAd) {
-                nativeAd = ad
-                isLoading = false
+                mainHandler.post {
+                    nativeAd = ad
+                    isLoading = false
+                }
             }
 
             override fun onAdFailedToLoad(error: LoadAdError) {
-                isLoading = false
+                mainHandler.post {
+                    isLoading = false
+                }
             }
         })
+    }
+
+    DisposableEffect(nativeAd) {
+        onDispose {
+            nativeAd?.destroy()
+        }
     }
 
     // Display the ad
@@ -390,6 +403,7 @@ fun AdWithLoadingState() {
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isError by remember { mutableStateOf(false) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
     LaunchedEffect(Unit) {
         val adRequest = NativeAdRequest.Builder(
@@ -399,15 +413,25 @@ fun AdWithLoadingState() {
 
         NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
             override fun onNativeAdLoaded(ad: NativeAd) {
-                nativeAd = ad
-                isLoading = false
+                mainHandler.post {
+                    nativeAd = ad
+                    isLoading = false
+                }
             }
 
             override fun onAdFailedToLoad(error: LoadAdError) {
-                isLoading = false
-                isError = true
+                mainHandler.post {
+                    isLoading = false
+                    isError = true
+                }
             }
         })
+    }
+
+    DisposableEffect(nativeAd) {
+        onDispose {
+            nativeAd?.destroy()
+        }
     }
 
     when {
@@ -687,6 +711,7 @@ import com.soosu.nextgen.admobnative.AdTemplateType
 class MyActivity : AppCompatActivity() {
 
     private lateinit var adView: NativeAdTemplateView
+    private var currentNativeAd: NativeAd? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -715,13 +740,23 @@ class MyActivity : AppCompatActivity() {
 
         NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
             override fun onNativeAdLoaded(ad: NativeAd) {
-                adView.setNativeAd(ad)
+                runOnUiThread {
+                    currentNativeAd?.destroy()
+                    currentNativeAd = ad
+                    adView.setNativeAd(ad)
+                }
             }
 
             override fun onAdFailedToLoad(error: LoadAdError) {
                 // Handle error
             }
         })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        currentNativeAd?.destroy()
+        currentNativeAd = null
     }
 }
 ```
@@ -786,6 +821,7 @@ class ViewSampleActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        nativeAds.forEach { it.destroy() }
         nativeAds.clear()
     }
 }
@@ -808,7 +844,7 @@ If you're migrating from the legacy Google Play Services Ads SDK, here are the k
 implementation("com.google.android.gms:play-services-ads:24.x.x")
 
 // Next-Gen SDK
-implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.1.0")
+implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.25.0-beta01")
 ```
 
 ### Initialization
@@ -841,7 +877,9 @@ val adRequest = NativeAdRequest.Builder(
 
 NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
     override fun onNativeAdLoaded(ad: NativeAd) {
-        nativeAd = ad
+        runOnUiThread {
+            nativeAd = ad
+        }
     }
     override fun onAdFailedToLoad(error: LoadAdError) {
         // Handle error
