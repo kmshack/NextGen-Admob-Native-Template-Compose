@@ -103,6 +103,12 @@ class AppOpenAdManager(private val config: AdmobConfig) {
             return
         }
 
+        if (activity.isFinishing || activity.isDestroyed) {
+            Log.d(TAG, "Gating: activity not in a valid state to show ad")
+            onShowAdComplete()
+            return
+        }
+
         if (config.shouldSuppressAds()) {
             Log.d(TAG, "Gating: ads suppressed by config")
             onShowAdComplete()

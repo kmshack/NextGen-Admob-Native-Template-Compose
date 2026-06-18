@@ -20,6 +20,7 @@ class AppOpenAdLifecycleObserver(
     private var currentActivityRef: WeakReference<Activity>? = null
     private var ignoreNextForeground = false
     private var isInBackground = false
+    private var pendingForegroundAd = false
 
     init {
         application.registerActivityLifecycleCallbacks(this)
@@ -42,18 +43,16 @@ class AppOpenAdLifecycleObserver(
             return
         }
 
-        val activity = currentActivityRef?.get() ?: return
-
-        if (excludedActivities.contains(activity::class.java.name)) {
-            Log.d(TAG, "Activity excluded: ${activity::class.java.simpleName}")
-            return
-        }
-
-        adManager.showAdIfAvailable(activity)
+        // Defer showing until an activity reaches RESUMED (see onActivityResumed).
+        // Showing here, during process ON_START, is fragile: the host activity may
+        // still be mid-recreation (configChanges/dark-mode) or not yet resumed, which
+        // makes the ad appear briefly and then immediately dismiss.
+        pendingForegroundAd = true
     }
 
     override fun onStop(owner: LifecycleOwner) {
         isInBackground = true
+        pendingForegroundAd = false
 
         if (config.preloadOnBackground) {
             val activity = currentActivityRef?.get()
@@ -73,6 +72,18 @@ class AppOpenAdLifecycleObserver(
 
     override fun onActivityResumed(activity: Activity) {
         currentActivityRef = WeakReference(activity)
+
+        if (!pendingForegroundAd) return
+        pendingForegroundAd = false
+
+        if (excludedActivities.contains(activity::class.java.name)) {
+            Log.d(TAG, "Activity excluded: ${activity::class.java.simpleName}")
+            return
+        }
+
+        // Activity is now RESUMED and is the real top activity, so the app open ad
+        // is shown over a stable window instead of one that is about to be torn down.
+        adManager.showAdIfAvailable(activity)
     }
 
     override fun onActivityPaused(activity: Activity) {}
