@@ -499,7 +499,7 @@ The library provides built-in support for **UMP consent management**, **SDK init
 val config = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
     .splashAdUnitId("ca-app-pub-xxx/splash")         // null to disable splash ads
     .foregroundAdUnitId("ca-app-pub-xxx/foreground")  // null to disable foreground ads
-    .consentTimeoutMs(5_000)                          // UMP timeout (default 5s)
+    .consentTimeoutMs(15_000)                         // UMP timeout (default 15s)
     .splashAdLoadTimeoutMs(8_000)                     // Splash ad load timeout (default 8s)
     .foregroundAdCooldownMs(10_000)                   // Foreground ad load cooldown (default 10s)
     .foregroundAdShowIntervalMs(10_000)               // Foreground ad show interval (default 0)
@@ -515,7 +515,7 @@ val config = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
 |-----------|---------|-------------|
 | `splashAdUnitId` | `null` | Splash ad unit ID. `null` to disable |
 | `foregroundAdUnitId` | `null` | Foreground ad unit ID. `null` to disable |
-| `consentTimeoutMs` | `5000` | UMP consent gathering timeout (ms) |
+| `consentTimeoutMs` | `15000` | UMP consent gathering timeout (ms) |
 | `splashAdLoadTimeoutMs` | `8000` | Splash ad load timeout (ms) |
 | `foregroundAdExpirationMs` | `4 hours` | Loaded foreground ad expiration time |
 | `foregroundAdCooldownMs` | `10000` | Foreground ad load retry cooldown (ms) |
@@ -619,6 +619,20 @@ appOpenAdManager.showAdIfAvailable(activity) {
 
 // Manually load ad (if needed)
 appOpenAdManager.loadAd(context)
+```
+
+### Gathering Consent
+
+Gather UMP consent before initializing the SDK. Pass `config.consentTimeoutMs` to bound the
+consent-info update (network) step — the timeout does **not** apply while the user is interacting
+with the consent form:
+
+```kotlin
+val consentManager = AdmobConsentManager(activity)
+val canRequestAds = consentManager.gatherConsent(
+    activity = activity,
+    timeoutMs = config.consentTimeoutMs, // 0 = no timeout
+)
 ```
 
 ### UMP Privacy Options

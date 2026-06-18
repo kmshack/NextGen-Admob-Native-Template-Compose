@@ -20,7 +20,7 @@ class AdmobConfig private constructor(
     class Builder(private val admobAppId: String) {
         private var splashAdUnitId: String? = null
         private var foregroundAdUnitId: String? = null
-        private var consentTimeoutMs: Long = 5_000L
+        private var consentTimeoutMs: Long = 15_000L
         private var splashAdLoadTimeoutMs: Long = 8_000L
         private var foregroundAdExpirationMs: Long = 4 * 60 * 60 * 1_000L
         private var foregroundAdCooldownMs: Long = 10_000L

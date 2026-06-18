@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.os.Build
 import androidx.compose.ui.graphics.Color
 import androidx.palette.graphics.Palette
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +53,16 @@ object AdColorExtractor {
     private fun drawableToBitmap(drawable: Drawable): Pair<Bitmap, Boolean> {
         // For BitmapDrawable, use the bitmap directly but don't recycle it
         if (drawable is BitmapDrawable && drawable.bitmap != null) {
-            return drawable.bitmap to false
+            val bitmap = drawable.bitmap
+            // Palette can't read pixels from a hardware bitmap (API 26+); copy to a
+            // software config first, otherwise generate() throws and color extraction
+            // silently fails back to default colors.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                bitmap.config == Bitmap.Config.HARDWARE
+            ) {
+                return bitmap.copy(Bitmap.Config.ARGB_8888, false) to true
+            }
+            return bitmap to false
         }
 
         // For other drawables, create a new bitmap

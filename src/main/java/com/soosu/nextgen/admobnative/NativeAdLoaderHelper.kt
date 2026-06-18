@@ -104,7 +104,9 @@ object NativeAdLoaderHelper {
 
             NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
                 override fun onNativeAdLoaded(nativeAd: NativeAd) {
-                    if (cont.isActive) cont.resume(LoadResult(ad = nativeAd))
+                    // If the coroutine was already cancelled the ad would be dropped
+                    // without anyone owning it, so destroy it to avoid leaking native resources.
+                    if (cont.isActive) cont.resume(LoadResult(ad = nativeAd)) else nativeAd.destroy()
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
