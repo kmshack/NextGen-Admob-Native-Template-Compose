@@ -3,6 +3,7 @@ package com.soosu.nextgen.admobnative
 import android.content.Context
 import android.util.Log
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
+import com.google.android.libraries.ads.mobile.sdk.common.AgeRestrictedTreatment
 import com.google.android.libraries.ads.mobile.sdk.common.RequestConfiguration
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import kotlinx.coroutines.Dispatchers
@@ -61,24 +62,17 @@ object AdmobInitializer {
                     }
                 }
 
-                config.tagForChildDirectedTreatment?.let { tag ->
-                    val tagValue = if (tag)
-                        RequestConfiguration.TagForChildDirectedTreatment.TAG_FOR_CHILD_DIRECTED_TREATMENT_TRUE
-                    else
-                        RequestConfiguration.TagForChildDirectedTreatment.TAG_FOR_CHILD_DIRECTED_TREATMENT_FALSE
-                    builder.setTagForChildDirectedTreatment(tagValue)
+                if (config.tagForChildDirectedTreatment != null ||
+                    config.tagForUnderAgeOfConsent != null
+                ) {
+                    val treatment = when {
+                        config.tagForChildDirectedTreatment == true -> AgeRestrictedTreatment.CHILD
+                        config.tagForUnderAgeOfConsent == true -> AgeRestrictedTreatment.TEEN
+                        else -> AgeRestrictedTreatment.UNSPECIFIED
+                    }
+                    builder.setAgeRestrictedTreatment(treatment)
                     hasConfig = true
-                    Log.d(TAG, "Set tagForChildDirectedTreatment: $tag")
-                }
-
-                config.tagForUnderAgeOfConsent?.let { tag ->
-                    val tagValue = if (tag)
-                        RequestConfiguration.TagForUnderAgeOfConsent.TAG_FOR_UNDER_AGE_OF_CONSENT_TRUE
-                    else
-                        RequestConfiguration.TagForUnderAgeOfConsent.TAG_FOR_UNDER_AGE_OF_CONSENT_FALSE
-                    builder.setTagForUnderAgeOfConsent(tagValue)
-                    hasConfig = true
-                    Log.d(TAG, "Set tagForUnderAgeOfConsent: $tag")
+                    Log.d(TAG, "Set ageRestrictedTreatment: $treatment")
                 }
 
                 if (hasConfig) {
