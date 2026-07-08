@@ -2,7 +2,6 @@ package com.soosu.nextgen.admobnative
 
 import android.annotation.SuppressLint
 import android.graphics.drawable.GradientDrawable
-import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -64,16 +63,11 @@ fun NativeAdIconSmallBox(
                     primary.text = headline
                 }
 
-                val iconDrawable = nativeAd.iconImageDrawable()
-
-                if (iconDrawable != null) {
-                    iconContainer.visibility = View.VISIBLE
-                    icon.visibility = View.VISIBLE
-                    icon.setImageDrawable(iconDrawable)
-                } else {
-                    iconContainer.visibility = View.GONE
-                }
-
+                icon.setNativeAdImage(
+                    drawable = nativeAd.iconImageDrawable(),
+                    uri = nativeAd.iconImageUri(),
+                    container = iconContainer
+                )
 
                 adView.registerNativeAd(nativeAd, null)
 

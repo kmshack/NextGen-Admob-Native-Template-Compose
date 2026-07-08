@@ -71,14 +71,11 @@ fun NativeAdMediumBox(
                     cta.text = callToAction
                 }
 
-                nativeAd.iconImageDrawable()?.let { drawable ->
-                    iconContainer.visibility = View.VISIBLE
-                    icon.visibility = View.VISIBLE
-                    icon.setImageDrawable(drawable)
-                } ?: run {
-                    iconContainer.visibility = View.GONE
-                    icon.setImageDrawable(null)
-                }
+                icon.setNativeAdImage(
+                    drawable = nativeAd.iconImageDrawable(),
+                    uri = nativeAd.iconImageUri(),
+                    container = iconContainer
+                )
 
                 nativeAd.body?.let { body ->
                     description.text = body
@@ -88,12 +85,15 @@ fun NativeAdMediumBox(
                 }
 
                 // Set media content (video or image)
-                nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
+                val mediaContent = adMedia.setNativeAdMediaOrImage(
+                    nativeAd = nativeAd,
+                    fallbackImageView = adImage,
+                    container = adImageContainer
+                ) { mediaContent ->
                     Log.d(
                         "NativeAdMediumBox",
                         "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
                     )
-                    adMedia.mediaContent = mediaContent
                     adMedia.post {
                         val width = adMedia.width
                         if (width > 0 && mediaContent.aspectRatio > 0) {
@@ -103,15 +103,9 @@ fun NativeAdMediumBox(
                             }
                         }
                     }
-                    adMedia.visibility = View.VISIBLE
-                    adImageContainer.visibility = View.VISIBLE
-                } ?: run {
-                    adMedia.mediaContent = null
-                    adMedia.visibility = View.GONE
-                    adImageContainer.visibility = View.GONE
                 }
 
-                adView.registerNativeAd(nativeAd, adMedia)
+                adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
 
             }
 

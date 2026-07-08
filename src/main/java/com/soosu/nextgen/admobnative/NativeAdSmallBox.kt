@@ -3,7 +3,6 @@ package com.soosu.nextgen.admobnative
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
-import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -64,22 +63,17 @@ fun NativeAdSmallBox(
                     else -> "ˑˑˑ"
                 }
 
-                nativeAd.iconImageDrawable()?.let { drawable ->
-                    iconContainer.visibility = View.VISIBLE
-                    icon.visibility = View.VISIBLE
-                    icon.setImageDrawable(drawable)
-                } ?: run {
-                    iconContainer.visibility = View.GONE
-                    icon.setImageDrawable(null)
-                }
+                icon.setNativeAdImage(
+                    drawable = nativeAd.iconImageDrawable(),
+                    uri = nativeAd.iconImageUri(),
+                    container = iconContainer
+                )
 
-                nativeAd.primaryImageDrawable()?.let { drawable ->
-                    adImageContainer.visibility = View.VISIBLE
-                    adImage.setImageDrawable(drawable)
-                } ?: run {
-                    adImageContainer.visibility = View.GONE
-                    adImage.setImageDrawable(null)
-                }
+                adImage.setNativeAdImage(
+                    drawable = nativeAd.primaryImageDrawable(),
+                    uri = nativeAd.primaryImageUri(),
+                    container = adImageContainer
+                )
 
                 adView.registerNativeAd(nativeAd, null)
             }

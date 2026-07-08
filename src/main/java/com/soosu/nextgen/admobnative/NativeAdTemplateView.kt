@@ -235,22 +235,17 @@ class NativeAdTemplateView @JvmOverloads constructor(
 
         nativeAd.headline?.let { primary.text = it }
 
-        nativeAd.iconImageDrawable()?.let { drawable ->
-            iconContainer.visibility = View.VISIBLE
-            icon.visibility = View.VISIBLE
-            icon.setImageDrawable(drawable)
-        } ?: run {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.iconImageDrawable(),
+            uri = nativeAd.iconImageUri(),
+            container = iconContainer
+        )
 
-        nativeAd.primaryImageDrawable()?.let { drawable ->
-            adImageContainer.visibility = View.VISIBLE
-            adImage.setImageDrawable(drawable)
-        } ?: run {
-            adImageContainer.visibility = View.GONE
-            adImage.setImageDrawable(null)
-        }
+        adImage.setNativeAdImage(
+            drawable = nativeAd.primaryImageDrawable(),
+            uri = nativeAd.primaryImageUri(),
+            container = adImageContainer
+        )
 
         adView.registerNativeAd(nativeAd, null)
     }
@@ -266,6 +261,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val icon = adView.findViewById<ImageView>(R.id.icon)
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
+        val adImage = adView.findViewById<ImageView>(R.id.ad_image)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
 
         adView.callToActionView = background
@@ -297,14 +293,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
         nativeAd.headline?.let { primary.text = it }
         nativeAd.callToAction?.let { cta.text = it }
 
-        nativeAd.iconImageDrawable()?.let { drawable ->
-            iconContainer.visibility = View.VISIBLE
-            icon.visibility = View.VISIBLE
-            icon.setImageDrawable(drawable)
-        } ?: run {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.iconImageDrawable(),
+            uri = nativeAd.iconImageUri(),
+            container = iconContainer
+        )
 
         nativeAd.body?.let { body ->
             description.text = body
@@ -313,8 +306,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
-            adMedia.mediaContent = mediaContent
+        val mediaContent = adMedia.setNativeAdMediaOrImage(
+            nativeAd = nativeAd,
+            fallbackImageView = adImage,
+            container = adImageContainer
+        ) { mediaContent ->
             adMedia.post {
                 val width = adMedia.width
                 if (width > 0 && mediaContent.aspectRatio > 0) {
@@ -324,14 +320,9 @@ class NativeAdTemplateView @JvmOverloads constructor(
                     }
                 }
             }
-            adMedia.visibility = View.VISIBLE
-            adImageContainer.visibility = View.VISIBLE
-        } ?: run {
-            adMedia.visibility = View.GONE
-            adImageContainer.visibility = View.GONE
         }
 
-        adView.registerNativeAd(nativeAd, adMedia)
+        adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
     }
 
     private fun bindLargeTemplate(adView: NativeAdView, nativeAd: NativeAd) {
@@ -345,6 +336,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val icon = adView.findViewById<ImageView>(R.id.icon)
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
+        val adImage = adView.findViewById<ImageView>(R.id.ad_image)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
         val ratingBar = adView.findViewById<RatingBar?>(R.id.rating_bar)
         val price = adView.findViewById<TextView?>(R.id.price)
@@ -380,14 +372,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
         primary.text = nativeAd.headline ?: ""
         cta.text = nativeAd.callToAction ?: ""
 
-        nativeAd.iconImageDrawable()?.let { drawable ->
-            iconContainer.visibility = View.VISIBLE
-            icon.visibility = View.VISIBLE
-            icon.setImageDrawable(drawable)
-        } ?: run {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.iconImageDrawable(),
+            uri = nativeAd.iconImageUri(),
+            container = iconContainer
+        )
 
         nativeAd.body?.let { body ->
             description.text = body
@@ -397,8 +386,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
-            adMedia.mediaContent = mediaContent
+        val mediaContent = adMedia.setNativeAdMediaOrImage(
+            nativeAd = nativeAd,
+            fallbackImageView = adImage,
+            container = adImageContainer
+        ) { mediaContent ->
             adMedia.post {
                 val width = adMedia.width
                 if (width > 0 && mediaContent.aspectRatio > 0) {
@@ -408,12 +400,6 @@ class NativeAdTemplateView @JvmOverloads constructor(
                     }
                 }
             }
-            adMedia.visibility = View.VISIBLE
-            adImageContainer.visibility = View.VISIBLE
-        } ?: run {
-            adMedia.mediaContent = null
-            adMedia.visibility = View.GONE
-            adImageContainer.visibility = View.GONE
         }
 
         nativeAd.starRating?.let { rating ->
@@ -431,7 +417,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
             price?.visibility = View.GONE
         }
 
-        adView.registerNativeAd(nativeAd, adMedia)
+        adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
     }
 
     private fun bindHeadlineTemplate(adView: NativeAdView, nativeAd: NativeAd) {
@@ -453,16 +439,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
         bar.setTextColor(textColor)
         arrow.setColorFilter(textColor)
 
-        val imageDrawable = nativeAd.primaryImageDrawable()
-
-        if (imageDrawable != null) {
-            iconContainer.visibility = View.VISIBLE
-            icon.visibility = View.VISIBLE
-            icon.setImageDrawable(imageDrawable)
-        } else {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.primaryImageDrawable(),
+            uri = nativeAd.primaryImageUri(),
+            container = iconContainer
+        )
 
         nativeAd.headline?.let { primary.text = it }
         nativeAd.callToAction?.let { cta.text = it }
@@ -503,14 +484,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
 
         nativeAd.headline?.let { primary.text = it }
 
-        nativeAd.iconImageDrawable()?.let { drawable ->
-            iconContainer.visibility = View.VISIBLE
-            icon.visibility = View.VISIBLE
-            icon.setImageDrawable(drawable)
-        } ?: run {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.iconImageDrawable(),
+            uri = nativeAd.iconImageUri(),
+            container = iconContainer
+        )
 
         adView.registerNativeAd(nativeAd, null)
     }
@@ -526,6 +504,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val icon = adView.findViewById<ImageView>(R.id.icon)
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
+        val adImage = adView.findViewById<ImageView>(R.id.ad_image)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
 
         adView.callToActionView = ctaContainer
@@ -552,13 +531,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
         nativeAd.body?.let { primary.text = it }
         nativeAd.callToAction?.let { cta.text = it }
 
-        nativeAd.iconImageDrawable()?.let { drawable ->
-            iconContainer.visibility = View.VISIBLE
-            icon.setImageDrawable(drawable)
-        } ?: run {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.iconImageDrawable(),
+            uri = nativeAd.iconImageUri(),
+            container = iconContainer
+        )
 
         nativeAd.body?.let { body ->
             if (nativeAd.headline != null && body != nativeAd.headline) {
@@ -571,8 +548,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
-            adMedia.mediaContent = mediaContent
+        val mediaContent = adMedia.setNativeAdMediaOrImage(
+            nativeAd = nativeAd,
+            fallbackImageView = adImage,
+            container = adImageContainer
+        ) { mediaContent ->
             adMedia.post {
                 val width = adMedia.width
                 if (width > 0 && mediaContent.aspectRatio > 0) {
@@ -582,15 +562,9 @@ class NativeAdTemplateView @JvmOverloads constructor(
                     }
                 }
             }
-            adMedia.visibility = View.VISIBLE
-            adImageContainer.visibility = View.VISIBLE
-        } ?: run {
-            adMedia.mediaContent = null
-            adMedia.visibility = View.GONE
-            adImageContainer.visibility = View.GONE
         }
 
-        adView.registerNativeAd(nativeAd, adMedia)
+        adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
     }
 
     private fun bindFullWidthMediaTemplate(adView: NativeAdView, nativeAd: NativeAd) {
@@ -606,6 +580,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val icon = adView.findViewById<ImageView>(R.id.icon)
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
+        val adImage = adView.findViewById<ImageView>(R.id.ad_image)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
         val fallbackContainer = adView.findViewById<View>(R.id.fallback_container)
         val gradientOverlay = adView.findViewById<View>(R.id.gradient_overlay)
@@ -652,33 +627,29 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.iconImageDrawable()?.let { drawable ->
-            iconContainer.visibility = View.VISIBLE
-            icon.setImageDrawable(drawable)
-        } ?: run {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.iconImageDrawable(),
+            uri = nativeAd.iconImageUri(),
+            container = iconContainer
+        )
 
-        val mediaContent = nativeAd.mediaContentWithImageFallback()
-        if (mediaContent != null) {
+        val mediaContent = adMedia.setNativeAdMediaOrImage(
+            nativeAd = nativeAd,
+            fallbackImageView = adImage,
+            container = adImageContainer
+        )
+        if (adImageContainer.visibility == View.VISIBLE) {
             adView.callToActionView = ctaContainer
             adView.headlineView = primary
-            adMedia.mediaContent = mediaContent
-            adMedia.visibility = View.VISIBLE
-            adImageContainer.visibility = View.VISIBLE
             fallbackContainer.visibility = View.GONE
             applyGradientOverlay(gradientOverlay)
         } else {
             adView.callToActionView = ctaContainerFallback
             adView.headlineView = primaryFallback
-            adMedia.mediaContent = null
-            adMedia.visibility = View.GONE
-            adImageContainer.visibility = View.GONE
             fallbackContainer.visibility = View.VISIBLE
         }
 
-        adView.registerNativeAd(nativeAd, adMedia)
+        adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
     }
 
     private fun bindAppInstallTemplate(adView: NativeAdView, nativeAd: NativeAd) {
@@ -692,6 +663,7 @@ class NativeAdTemplateView @JvmOverloads constructor(
         val icon = adView.findViewById<ImageView>(R.id.icon)
         val iconContainer = adView.findViewById<View>(R.id.icon_container)
         val adMedia = adView.findViewById<MediaView>(R.id.ad_media)
+        val adImage = adView.findViewById<ImageView>(R.id.ad_image)
         val adImageContainer = adView.findViewById<View>(R.id.ad_image_container)
         val ratingBar = adView.findViewById<RatingBar>(R.id.rating_bar)
         val ratingText = adView.findViewById<TextView>(R.id.rating_text)
@@ -731,13 +703,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
 
         nativeAd.callToAction?.let { cta.text = it } ?: run { cta.text = "Install" }
 
-        nativeAd.iconImageDrawable()?.let { drawable ->
-            iconContainer.visibility = View.VISIBLE
-            icon.setImageDrawable(drawable)
-        } ?: run {
-            iconContainer.visibility = View.GONE
-            icon.setImageDrawable(null)
-        }
+        icon.setNativeAdImage(
+            drawable = nativeAd.iconImageDrawable(),
+            uri = nativeAd.iconImageUri(),
+            container = iconContainer
+        )
 
         nativeAd.starRating?.let { rating ->
             ratingBar.rating = rating.toFloat()
@@ -766,8 +736,11 @@ class NativeAdTemplateView @JvmOverloads constructor(
             description.visibility = View.GONE
         }
 
-        nativeAd.mediaContentWithImageFallback()?.let { mediaContent ->
-            adMedia.mediaContent = mediaContent
+        val mediaContent = adMedia.setNativeAdMediaOrImage(
+            nativeAd = nativeAd,
+            fallbackImageView = adImage,
+            container = adImageContainer
+        ) { mediaContent ->
             adMedia.post {
                 val width = adMedia.width
                 if (width > 0 && mediaContent.aspectRatio > 0) {
@@ -777,15 +750,9 @@ class NativeAdTemplateView @JvmOverloads constructor(
                     }
                 }
             }
-            adMedia.visibility = View.VISIBLE
-            adImageContainer.visibility = View.VISIBLE
-        } ?: run {
-            adMedia.mediaContent = null
-            adMedia.visibility = View.GONE
-            adImageContainer.visibility = View.GONE
         }
 
-        adView.registerNativeAd(nativeAd, adMedia)
+        adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
     }
 
     private fun applyGradientOverlay(view: View) {
