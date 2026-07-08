@@ -41,3 +41,4 @@ google-services.json
 keystore.properties
 *.pem
 *.key
+/example/
