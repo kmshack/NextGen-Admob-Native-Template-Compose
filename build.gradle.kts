@@ -48,7 +48,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-viewbinding")
 
     // Google AdMob Next-Gen SDK
-    api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.2.1")
+    api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.3.0")
 
     // UMP SDK
     api("com.google.android.ump:user-messaging-platform:4.0.0")
@@ -61,6 +61,8 @@ dependencies {
 
     // Palette for color extraction
     implementation("androidx.palette:palette-ktx:1.0.0")
+
+    testImplementation("junit:junit:4.13.2")
 }
 
 afterEvaluate {
@@ -71,7 +73,7 @@ afterEvaluate {
 
                 groupId = "com.github.kmshack"
                 artifactId = "nextgen-admob-native-template-compose"
-                version = "1.6.2"
+                version = "1.7.0"
 
                 pom {
                     name.set("NextGen Admob Native Template Compose")

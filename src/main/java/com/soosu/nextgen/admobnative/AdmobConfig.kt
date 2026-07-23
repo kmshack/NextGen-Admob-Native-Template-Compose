@@ -10,6 +10,8 @@ class AdmobConfig private constructor(
     val foregroundAdCooldownMs: Long,
     val foregroundAdShowIntervalMs: Long,
     val preloadOnBackground: Boolean,
+    val useAppOpenAdPreloader: Boolean,
+    val appOpenAdPreloadBufferSize: Int?,
     val shouldSuppressAds: () -> Boolean,
     val debugLogging: Boolean,
     val maxAdContentRating: String?,
@@ -26,6 +28,8 @@ class AdmobConfig private constructor(
         private var foregroundAdCooldownMs: Long = 10_000L
         private var foregroundAdShowIntervalMs: Long = 0L
         private var preloadOnBackground: Boolean = true
+        private var useAppOpenAdPreloader: Boolean = true
+        private var appOpenAdPreloadBufferSize: Int? = 1
         private var shouldSuppressAds: () -> Boolean = { false }
         private var debugLogging: Boolean = false
         private var maxAdContentRating: String? = null
@@ -41,6 +45,17 @@ class AdmobConfig private constructor(
         fun foregroundAdCooldownMs(ms: Long) = apply { this.foregroundAdCooldownMs = ms }
         fun foregroundAdShowIntervalMs(ms: Long) = apply { this.foregroundAdShowIntervalMs = ms }
         fun preloadOnBackground(enabled: Boolean) = apply { this.preloadOnBackground = enabled }
+        fun useAppOpenAdPreloader(enabled: Boolean) = apply {
+            this.useAppOpenAdPreloader = enabled
+        }
+
+        fun appOpenAdPreloadBufferSize(size: Int?) = apply {
+            require(size == null || size >= 1) {
+                "App open ad preload buffer size must be null or at least 1"
+            }
+            this.appOpenAdPreloadBufferSize = size
+        }
+
         fun shouldSuppressAds(predicate: () -> Boolean) = apply { this.shouldSuppressAds = predicate }
         fun debugLogging(enabled: Boolean) = apply { this.debugLogging = enabled }
         fun maxAdContentRating(rating: String?) = apply { this.maxAdContentRating = rating }
@@ -59,6 +74,8 @@ class AdmobConfig private constructor(
             foregroundAdCooldownMs = foregroundAdCooldownMs,
             foregroundAdShowIntervalMs = foregroundAdShowIntervalMs,
             preloadOnBackground = preloadOnBackground,
+            useAppOpenAdPreloader = useAppOpenAdPreloader,
+            appOpenAdPreloadBufferSize = appOpenAdPreloadBufferSize,
             shouldSuppressAds = shouldSuppressAds,
             debugLogging = debugLogging,
             maxAdContentRating = maxAdContentRating,

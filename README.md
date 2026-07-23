@@ -55,7 +55,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 - **Compile SDK**: 36+
 - **Kotlin**: 2.0.0+
 - **Jetpack Compose**: BOM 2025.06.00+
-- **GMA Next-Gen SDK**: 0.22.0-beta04+
+- **GMA Next-Gen SDK**: 1.3.0+
 
 ---
 
@@ -81,7 +81,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.5.7")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.0")
 }
 ```
 
@@ -504,6 +504,8 @@ val config = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
     .foregroundAdCooldownMs(10_000)                   // Foreground ad load cooldown (default 10s)
     .foregroundAdShowIntervalMs(10_000)               // Foreground ad show interval (default 0)
     .preloadOnBackground(true)                        // Preload on entering background
+    .useAppOpenAdPreloader(true)                      // SDK-managed preloader (default true)
+    .appOpenAdPreloadBufferSize(1)                    // 1 by default; null = SDK optimized
     .shouldSuppressAds { isPremiumUser() }            // Ad suppression condition
     .debugLogging(BuildConfig.DEBUG)
     .build()
@@ -521,6 +523,8 @@ val config = AdmobConfig.Builder("ca-app-pub-xxx~yyy")
 | `foregroundAdCooldownMs` | `10000` | Foreground ad load retry cooldown (ms) |
 | `foregroundAdShowIntervalMs` | `0` | Minimum interval between foreground ad shows (ms) |
 | `preloadOnBackground` | `true` | Whether to preload ads when entering background |
+| `useAppOpenAdPreloader` | `true` | Use the SDK-managed `AppOpenAdPreloader` for foreground ads |
+| `appOpenAdPreloadBufferSize` | `1` | Maximum queued ads. `null` delegates sizing to the SDK |
 | `shouldSuppressAds` | `{ false }` | Ad suppression condition (e.g. premium users) |
 | `debugLogging` | `false` | Enable debug logging |
 
@@ -602,6 +606,20 @@ class SplashActivity : ComponentActivity() {
 
 `AppOpenAdLifecycleObserver` automatically detects foreground transitions via `ProcessLifecycleOwner` and `ActivityLifecycleCallbacks`, then shows the ad. Register once in your Application class.
 
+Starting with `1.7.0`, `AppOpenAdManager` uses the SDK-managed
+`AppOpenAdPreloader` by default. Existing apps that already use
+`AppOpenAdManager` and `AppOpenAdLifecycleObserver` do not need application
+code changes: updating this library is enough to route their existing
+`loadAd()` and `showAdIfAvailable()` calls through the preloader.
+
+The preloader keeps the in-memory buffer full for the current process session,
+automatically retries failed preload requests, and refills after `pollAd()`.
+This does not create a disk cache for a true cold start. The library defaults
+to a single-ad buffer to minimize memory and network use. Pass `null` to
+`appOpenAdPreloadBufferSize()` to let Google choose the size (currently 2), or
+set another value of at least 1. Larger buffers can increase memory and network
+usage.
+
 **Key Features:**
 
 ```kotlin
@@ -619,7 +637,31 @@ appOpenAdManager.showAdIfAvailable(activity) {
 
 // Manually load ad (if needed)
 appOpenAdManager.loadAd(context)
+
+// Inspect or release the SDK-managed buffer
+val readyCount = appOpenAdManager.getNumPreloadedAds()
+appOpenAdManager.stopPreloading()
 ```
+
+To retain the pre-`1.7.0` one-shot loader, opt out explicitly:
+
+```kotlin
+AdmobConfig.Builder(appId)
+    .useAppOpenAdPreloader(false)
+    .build()
+```
+
+`foregroundAdCooldownMs` controls only the one-shot loader used after opting
+out of the preloader. When the preloader is enabled, the Google SDK owns retry
+and refill scheduling. `loadAndShowIfMissing` waits for the active preloader
+instead of issuing a duplicate one-shot request. Runtime keyword changes
+replace and immediately restart the buffer with the updated request.
+
+> Updating only Google's `ads-mobile-sdk` dependency does not activate
+> preloading. `AppOpenAdPreloader.start()` and `pollAd()` must be integrated,
+> which this library now does inside `AppOpenAdManager`. Direct
+> `AppOpenAd.load()` calls outside the manager and the cold-start
+> `SplashAdLoader` flow remain one-shot loads.
 
 ### Gathering Consent
 
@@ -858,7 +900,7 @@ If you're migrating from the legacy Google Play Services Ads SDK, here are the k
 implementation("com.google.android.gms:play-services-ads:24.x.x")
 
 // Next-Gen SDK
-implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.2.1")
+implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.3.0")
 ```
 
 ### Initialization
