@@ -2,8 +2,6 @@ package com.soosu.nextgen.admobnative.sample
 
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -45,11 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdRequest
 import com.soosu.nextgen.admobnative.NativeAdAppInstallBox
 import com.soosu.nextgen.admobnative.NativeAdAutoColorWrapper
 import com.soosu.nextgen.admobnative.NativeAdContentBox
@@ -59,7 +53,6 @@ import com.soosu.nextgen.admobnative.NativeAdIconSmallBox
 import com.soosu.nextgen.admobnative.NativeAdLargeBox
 import com.soosu.nextgen.admobnative.NativeAdMediumBox
 import com.soosu.nextgen.admobnative.NativeAdSmallBox
-import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,46 +117,28 @@ fun MainScreen() {
     var contentError by remember { mutableStateOf<String?>(null) }
     var appInstallError by remember { mutableStateOf<String?>(null) }
 
-    // Test ad unit ID for native ads
-    val testAdUnitId = "ca-app-pub-3940256099942544/2247696110"
-    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val application = context.applicationContext as SampleApplication
+    val nativeAdLoadManager = application.nativeAdLoadManager
     val nativeAds = remember { mutableListOf<NativeAd>() }
-    val isDisposed = remember { AtomicBoolean(false) }
 
-    fun loadNativeAd(
+    suspend fun loadNativeAd(
         onLoaded: (NativeAd) -> Unit,
-        onFailed: (LoadAdError) -> Unit
+        onFailed: (String) -> Unit,
     ) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
-                mainHandler.post {
-                    if (isDisposed.get()) {
-                        ad.destroy()
-                    } else {
-                        nativeAds.add(ad)
-                        onLoaded(ad)
-                    }
-                }
-            }
-
-            override fun onAdFailedToLoad(error: LoadAdError) {
-                mainHandler.post {
-                    if (!isDisposed.get()) {
-                        onFailed(error)
-                    }
-                }
-            }
-        })
+        val ad = nativeAdLoadManager.awaitNativeAd(
+            key = SampleApplication.NATIVE_FEED_POOL,
+            timeoutMs = 15_000L,
+        )
+        if (ad == null) {
+            onFailed("Native ad preload timed out")
+        } else {
+            nativeAds.add(ad)
+            onLoaded(ad)
+        }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            isDisposed.set(true)
             nativeAds.forEach { it.destroy() }
             nativeAds.clear()
         }
@@ -178,7 +153,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 headlineLoading = false
-                headlineError = error.message
+                headlineError = error
             }
         )
     }
@@ -192,7 +167,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 smallLoading = false
-                smallError = error.message
+                smallError = error
             }
         )
     }
@@ -206,7 +181,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 iconSmallLoading = false
-                iconSmallError = error.message
+                iconSmallError = error
             }
         )
     }
@@ -220,7 +195,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 mediumLoading = false
-                mediumError = error.message
+                mediumError = error
             }
         )
     }
@@ -234,7 +209,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 largeLoading = false
-                largeError = error.message
+                largeError = error
             }
         )
     }
@@ -248,7 +223,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 fullWidthMediaLoading = false
-                fullWidthMediaError = error.message
+                fullWidthMediaError = error
             }
         )
     }
@@ -262,7 +237,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 contentLoading = false
-                contentError = error.message
+                contentError = error
             }
         )
     }
@@ -276,7 +251,7 @@ fun MainScreen() {
             },
             onFailed = { error ->
                 appInstallLoading = false
-                appInstallError = error.message
+                appInstallError = error
             }
         )
     }
@@ -699,7 +674,7 @@ fun MainScreen() {
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            testAdUnitId,
+                            SampleApplication.TEST_NATIVE_AD_UNIT_ID,
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSecondaryContainer

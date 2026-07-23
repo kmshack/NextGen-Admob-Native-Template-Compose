@@ -51,7 +51,13 @@ class SplashActivity : ComponentActivity() {
             // 3. 포그라운드 광고 프리로드
             app.appOpenAdManager.loadAd(this@SplashActivity)
 
-            // 4. 메인 화면으로 이동
+            // 4. 네이티브 광고 프리로드
+            // consent/premium/Remote Config 조건은 앱에서 판단하고 start/stop합니다.
+            if (!app.admobConfig.shouldSuppressAds()) {
+                app.nativeAdLoadManager.start(SampleApplication.NATIVE_FEED_POOL)
+            }
+
+            // 5. 메인 화면으로 이동
             startActivity(Intent(this@SplashActivity, MainActivity::class.java))
             finish()
         }
