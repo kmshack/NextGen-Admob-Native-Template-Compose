@@ -36,6 +36,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Native Ad Preloading](#native-ad-preloading)
 - [Available Templates](#available-templates)
 - [API Reference](#api-reference)
 - [Advanced Usage](#advanced-usage)
@@ -81,9 +82,14 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.0")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.1")
 }
 ```
+
+> `NativeAdLoadManager` was added after the `1.7.0` tag. The examples below
+> require the current source branch or the next tagged release that includes
+> `NativeAdLoadManager`; do not expect the class in the published `1.7.0`
+> artifact.
 
 **Step 3:** Sync your project
 
@@ -91,94 +97,128 @@ dependencies {
 
 ## Quick Start
 
-### 1. Initialize AdMob (Next-Gen SDK)
+### 1. Register and Start a Native Ad Pool
 
-Initialize the SDK in your Application or Activity:
+Create one application-scoped manager. Registration is allowed before SDK
+initialization; start loading only after consent handling and SDK initialization
+are complete.
 
 ```kotlin
+import android.app.Application
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
+import com.soosu.nextgen.admobnative.NativeAdLoadManager
+import com.soosu.nextgen.admobnative.createNativeAdRequestWithDefaults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+class MyApplication : Application() {
+    val nativeAdLoadManager = NativeAdLoadManager()
 
-        // Initialize GMA Next-Gen SDK on background thread
-        val appId = "ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"
+    override fun onCreate() {
+        super.onCreate()
 
+        nativeAdLoadManager.register(
+            key = HOME_NATIVE_POOL,
+            request = createNativeAdRequestWithDefaults("YOUR_AD_UNIT_ID"),
+            bufferSize = 1,
+        )
+
+        // In production, complete UMP consent handling before starting the pool.
         CoroutineScope(Dispatchers.IO).launch {
             MobileAds.initialize(
-                this@MainActivity,
-                InitializationConfig.Builder(appId).build()
+                this@MyApplication,
+                InitializationConfig.Builder("YOUR_ADMOB_APP_ID").build(),
             ) {
-                // Initialization complete
+                nativeAdLoadManager.start(HOME_NATIVE_POOL)
             }
         }
+    }
+
+    companion object {
+        const val HOME_NATIVE_POOL = "home-native"
     }
 }
 ```
 
-### 2. Load and Display a Native Ad
+### 2. Consume and Display a Native Ad
+
+`awaitNativeAd()` waits only on an already-started pool. If the key is missing
+or stopped, it returns `null` immediately; make SDK initialization and
+`start()` part of the app's navigation/readiness gate.
 
 ```kotlin
-import android.os.Handler
-import android.os.Looper
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdRequest
-import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.soosu.nextgen.admobnative.NativeAdSmallBox
 
 @Composable
 fun MyScreen() {
+    val app = LocalContext.current.applicationContext as MyApplication
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
     LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            "YOUR_AD_UNIT_ID",
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
-                mainHandler.post {
-                    nativeAd = ad
-                    isLoading = false
-                }
-            }
-
-            override fun onAdFailedToLoad(error: LoadAdError) {
-                mainHandler.post {
-                    isLoading = false
-                }
-            }
-        })
+        nativeAd = app.nativeAdLoadManager.awaitNativeAd(
+            key = MyApplication.HOME_NATIVE_POOL,
+            timeoutMs = 8_000L,
+        )
+        isLoading = false
     }
 
     DisposableEffect(nativeAd) {
+        val ownedAd = nativeAd
         onDispose {
-            nativeAd?.destroy()
+            ownedAd?.destroy()
         }
     }
 
-    // Display the ad
-    if (!isLoading && nativeAd != null) {
-        NativeAdSmallBox(
+    when {
+        isLoading -> CircularProgressIndicator()
+        nativeAd != null -> NativeAdSmallBox(
             nativeAd = nativeAd,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
         )
     }
 }
 ```
+
+---
+
+## Native Ad Preloading
+
+`NativeAdLoadManager` wraps the Next-Gen SDK `NativeAdPreloader` while keeping
+placement policy in the app.
+
+- Each key has an independent buffer; the default is one ad per key.
+- A fully built `NativeAdRequest` preserves aspect ratio, keywords, mediation
+  extras, custom formats, and banner options.
+- The SDK automatically refills the buffer and retries preload failures.
+- `pollNativeAd()` returns immediately; `awaitNativeAd()` can wait with a
+  coroutine timeout.
+- `pollResult()` supports standard native, custom native, and banner success
+  results.
+- Listener callbacks are delivered on the main thread after the SDK callback
+  stack returns.
+- Kotlin can implement `NativeAdLoadListener` directly; Java can extend
+  `NativeAdLoadListenerAdapter` and override only the needed callbacks.
+- `onAdPreloaded` callback order is not guaranteed to match subsequent poll
+  order; do not correlate callback `ResponseInfo` by position.
+- Ads returned by poll/await belong to the caller and must be destroyed by the
+  screen, ViewModel, or Activity that owns them.
+- Consent, premium-user, network, and Remote Config decisions stay in the app
+  and control `start()` / `stop()`.
+
+For complete migration patterns—including multiple placements, list slots,
+StateFlow, dynamic requests, and ownership—see the
+[Korean NativeAdLoadManager migration guide](docs/native-ad-load-manager-migration.ko.md).
 
 ---
 
@@ -399,38 +439,21 @@ NativeAdMediumBox(
 
 ```kotlin
 @Composable
-fun AdWithLoadingState() {
+fun AdWithLoadingState(manager: NativeAdLoadManager) {
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isError by remember { mutableStateOf(false) }
-    val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
-    LaunchedEffect(Unit) {
-        val adRequest = NativeAdRequest.Builder(
-            "YOUR_AD_UNIT_ID",
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
-                mainHandler.post {
-                    nativeAd = ad
-                    isLoading = false
-                }
-            }
-
-            override fun onAdFailedToLoad(error: LoadAdError) {
-                mainHandler.post {
-                    isLoading = false
-                    isError = true
-                }
-            }
-        })
+    LaunchedEffect(manager) {
+        nativeAd = manager.awaitNativeAd("home-native", timeoutMs = 8_000L)
+        isLoading = false
+        isError = nativeAd == null
     }
 
     DisposableEffect(nativeAd) {
+        val ownedAd = nativeAd
         onDispose {
-            nativeAd?.destroy()
+            ownedAd?.destroy()
         }
     }
 
@@ -761,12 +784,20 @@ For projects that prefer traditional Android Views over Jetpack Compose, the lib
 ### Kotlin/Java Usage
 
 ```kotlin
-import com.soosu.nextgen.admobnative.NativeAdTemplateView
+import android.graphics.Color
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.soosu.nextgen.admobnative.AdTemplateType
+import com.soosu.nextgen.admobnative.NativeAdTemplateView
+import kotlinx.coroutines.launch
 
-class MyActivity : AppCompatActivity() {
+class MyActivity : ComponentActivity() {
 
     private lateinit var adView: NativeAdTemplateView
+    private val nativeAdManager
+        get() = (application as MyApplication).nativeAdLoadManager
     private var currentNativeAd: NativeAd? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -789,24 +820,16 @@ class MyActivity : AppCompatActivity() {
     }
 
     private fun loadNativeAd() {
-        val adRequest = NativeAdRequest.Builder(
-            "YOUR_AD_UNIT_ID",
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
-                runOnUiThread {
-                    currentNativeAd?.destroy()
-                    currentNativeAd = ad
-                    adView.setNativeAd(ad)
-                }
+        lifecycleScope.launch {
+            nativeAdManager.awaitNativeAd(
+                key = MyApplication.HOME_NATIVE_POOL,
+                timeoutMs = 8_000L,
+            )?.let { ad ->
+                currentNativeAd?.destroy()
+                currentNativeAd = ad
+                adView.setNativeAd(ad)
             }
-
-            override fun onAdFailedToLoad(error: LoadAdError) {
-                // Handle error
-            }
-        })
+        }
     }
 
     override fun onDestroy() {
@@ -832,11 +855,24 @@ class MyActivity : AppCompatActivity() {
 
 ### Complete Example
 
+This showcase requests three distinct ads. With the default one-ad buffer they
+arrive through sequential SDK refills, so production screens should render each
+slot as optional and tolerate individual timeouts. Increase the buffer only
+after validating memory use and any mediation adapters.
+
 ```kotlin
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+import com.soosu.nextgen.admobnative.NativeAdTemplateView
+import kotlinx.coroutines.launch
+
 class ViewSampleActivity : ComponentActivity() {
 
     private val nativeAds = mutableListOf<NativeAd>()
-    private val testAdUnitId = "ca-app-pub-3940256099942544/2247696110"
+    private val nativeAdManager
+        get() = (application as MyApplication).nativeAdLoadManager
 
     private lateinit var adSmall: NativeAdTemplateView
     private lateinit var adMedium: NativeAdTemplateView
@@ -856,23 +892,15 @@ class ViewSampleActivity : ComponentActivity() {
     }
 
     private fun loadAdFor(templateView: NativeAdTemplateView) {
-        val adRequest = NativeAdRequest.Builder(
-            testAdUnitId,
-            listOf(NativeAd.NativeAdType.NATIVE)
-        ).build()
-
-        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
-            override fun onNativeAdLoaded(ad: NativeAd) {
-                runOnUiThread {
-                    nativeAds.add(ad)
-                    templateView.setNativeAd(ad)
-                }
+        lifecycleScope.launch {
+            nativeAdManager.awaitNativeAd(
+                key = MyApplication.HOME_NATIVE_POOL,
+                timeoutMs = 8_000L,
+            )?.let { ad ->
+                nativeAds.add(ad)
+                templateView.setNativeAd(ad)
             }
-
-            override fun onAdFailedToLoad(error: LoadAdError) {
-                // Handle error
-            }
-        })
+        }
     }
 
     override fun onDestroy() {
@@ -954,6 +982,10 @@ NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
 | `nativeAd.images` | Not available (use `mediaContent`) |
 | `minSdk = 23` | `minSdk = 24` |
 
+After completing the SDK type migration, use the
+[NativeAdLoadManager migration guide](docs/native-ad-load-manager-migration.ko.md)
+to replace direct loads with SDK-managed preload pools.
+
 ---
 
 ## Sample App
@@ -1005,14 +1037,12 @@ This library uses the following dependencies:
 | Dependency | Version | Purpose |
 |------------|---------|---------|
 | Jetpack Compose BOM | 2025.06.00 | Compose runtime and UI |
-| Material 3 | 1.3.2+ | Material Design components |
-| GMA Next-Gen SDK | 0.23.0-beta01 | AdMob SDK (Native, App Open) |
+| Material 3 | Compose BOM | Material Design components |
+| GMA Next-Gen SDK | 1.3.0 | AdMob SDK (Native, App Open) |
 | UMP SDK | 4.0.0 | User consent management (GDPR/CCPA) |
-| Lifecycle Process | 2.8.7 | Foreground/background detection |
-| Kotlinx Coroutines | 1.9.0 | Coroutines support |
+| Lifecycle Process | 2.10.0 | Foreground/background detection |
+| Kotlinx Coroutines | 1.10.2 | Coroutines support |
 | Palette KTX | 1.0.0 | Auto color extraction from images |
-| AndroidX Core KTX | 1.15.0 | Core Android utilities |
-| CardView | 1.0.0 | Card components |
 
 ---
 
