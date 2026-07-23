@@ -86,10 +86,9 @@ dependencies {
 }
 ```
 
-> `NativeAdLoadManager` was added after the `1.7.0` tag. The examples below
-> require the current source branch or the next tagged release that includes
-> `NativeAdLoadManager`; do not expect the class in the published `1.7.0`
-> artifact.
+> `NativeAdLoadManager` was added in the `1.7.1` release. The examples below
+> require the `1.7.1` (or newer) release; do not expect the class in earlier
+> published artifacts.
 
 **Step 3:** Sync your project
 
