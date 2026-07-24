@@ -37,6 +37,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Native Ad Preloading](#native-ad-preloading)
+- [Interstitial Ad Preloading](#interstitial-ad-preloading)
 - [Available Templates](#available-templates)
 - [API Reference](#api-reference)
 - [Advanced Usage](#advanced-usage)
@@ -82,7 +83,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.2")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.3")
 }
 ```
 
@@ -223,6 +224,56 @@ placement policy in the app.
 For complete migration patterns—including multiple placements, list slots,
 StateFlow, dynamic requests, and ownership—see the
 [Korean NativeAdLoadManager migration guide](docs/native-ad-load-manager-migration.ko.md).
+
+---
+
+## Interstitial Ad Preloading
+
+`InterstitialAdLoadManager` wraps the Next-Gen SDK `InterstitialAdPreloader`
+with the same pool model as `NativeAdLoadManager`: independent per-key buffers,
+automatic SDK refill, expiration handling, deferred start before SDK
+initialization, and main-thread listener callbacks.
+
+```kotlin
+class MyApplication : Application() {
+    val interstitialAdLoadManager = InterstitialAdLoadManager()
+
+    override fun onCreate() {
+        super.onCreate()
+        interstitialAdLoadManager.register(
+            key = GAME_OVER_INTERSTITIAL,
+            adUnitId = "YOUR_INTERSTITIAL_AD_UNIT_ID",
+        )
+        // start() after consent + SDK initialization; a call made earlier is
+        // deferred and resumed automatically (see Native Ad Preloading notes).
+        interstitialAdLoadManager.start(GAME_OVER_INTERSTITIAL)
+    }
+
+    companion object {
+        const val GAME_OVER_INTERSTITIAL = "game-over"
+    }
+}
+```
+
+Show at a transition point:
+
+```kotlin
+// Simplest: manager polls, shows, and destroys the ad after dismiss.
+app.interstitialAdLoadManager.showAdIfAvailable(activity, GAME_OVER_INTERSTITIAL) {
+    navigateToNextScreen()
+}
+
+// Full control: ownership of the polled ad transfers to the caller.
+val ad = app.interstitialAdLoadManager.pollAd(GAME_OVER_INTERSTITIAL)
+
+// Or suspend until an ad is ready (started pools only).
+val ad = app.interstitialAdLoadManager.awaitAd(GAME_OVER_INTERSTITIAL, timeoutMs = 5_000L)
+```
+
+Show-frequency policy (intervals, caps, premium users) intentionally stays in
+the app; the manager only owns loading and show mechanics. For migration from
+a hand-rolled `InterstitialAd.load()` implementation, see the
+[Korean InterstitialAdLoadManager migration guide](docs/interstitial-ad-load-manager-migration.ko.md).
 
 ---
 
