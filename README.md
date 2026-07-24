@@ -82,7 +82,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.1")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.2")
 }
 ```
 
@@ -214,6 +214,11 @@ placement policy in the app.
   screen, ViewModel, or Activity that owns them.
 - Consent, premium-user, network, and Remote Config decisions stay in the app
   and control `start()` / `stop()`.
+- `start()` before SDK initialization is deferred, not dropped: the pool starts
+  automatically once `AdmobInitializer.initialize()` completes (this is the
+  initializer used internally by `SplashAdLoader.execute()`). A `stop()` or
+  `unregister()` before that point cancels the deferred start. Apps that call
+  `MobileAds.initialize()` directly must still call `start()` afterwards.
 
 For complete migration patterns—including multiple placements, list slots,
 StateFlow, dynamic requests, and ownership—see the
@@ -678,6 +683,14 @@ out of the preloader. When the preloader is enabled, the Google SDK owns retry
 and refill scheduling. `loadAndShowIfMissing` waits for the active preloader
 instead of issuing a duplicate one-shot request. Runtime keyword changes
 replace and immediately restart the buffer with the updated request.
+
+`loadAd()` before SDK initialization is deferred, not dropped: the call is
+replayed automatically once `AdmobInitializer.initialize()` completes (this is
+the initializer used internally by `SplashAdLoader.execute()`), re-running the
+suppression and configuration gates at that time. `stopPreloading()` cancels a
+deferred load. Apps that call `MobileAds.initialize()` directly must still call
+`loadAd()` afterwards. `showAdIfAvailable()` is intentionally never deferred —
+a foreground ad appearing seconds after the trigger would be a UX bug.
 
 > Updating only Google's `ads-mobile-sdk` dependency does not activate
 > preloading. `AppOpenAdPreloader.start()` and `pollAd()` must be integrated,
