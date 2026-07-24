@@ -37,14 +37,16 @@ class SampleApplication : Application() {
         // 2. AppOpenAdManager 생성
         appOpenAdManager = AppOpenAdManager(admobConfig)
 
-        // 3. 네이티브 광고 풀 등록
-        // 실제 로딩 시작은 동의 처리와 SDK 초기화가 끝난 뒤 SplashActivity에서 수행합니다.
+        // 3. 네이티브 광고 풀 등록 및 시작
+        // start()는 SDK 초기화 전에 호출해도 예약되었다가 초기화 완료 시 자동
+        // 재개되므로, 스플래시가 진행되는 동안 버퍼가 미리 채워집니다.
         nativeAdLoadManager = NativeAdLoadManager().apply {
             register(
                 key = NATIVE_FEED_POOL,
                 request = createNativeAdRequestWithDefaults(TEST_NATIVE_AD_UNIT_ID),
-                bufferSize = 1,
+                bufferSize = 8,
             )
+            start(NATIVE_FEED_POOL)
         }
 
         // 4. 포그라운드 광고 라이프사이클 옵저버 등록

@@ -144,77 +144,9 @@ fun MainScreen() {
         }
     }
 
-    // Load headline ad
-    LaunchedEffect(Unit) {
-        loadNativeAd(
-            onLoaded = { ad ->
-                headlineAd = ad
-                headlineLoading = false
-            },
-            onFailed = { error ->
-                headlineLoading = false
-                headlineError = error
-            }
-        )
-    }
-
-    // Load small ad
-    LaunchedEffect(Unit) {
-        loadNativeAd(
-            onLoaded = { ad ->
-                smallAd = ad
-                smallLoading = false
-            },
-            onFailed = { error ->
-                smallLoading = false
-                smallError = error
-            }
-        )
-    }
-
-    // Load icon small ad
-    LaunchedEffect(Unit) {
-        loadNativeAd(
-            onLoaded = { ad ->
-                iconSmallAd = ad
-                iconSmallLoading = false
-            },
-            onFailed = { error ->
-                iconSmallLoading = false
-                iconSmallError = error
-            }
-        )
-    }
-
-    // Load medium ad
-    LaunchedEffect(Unit) {
-        loadNativeAd(
-            onLoaded = { ad ->
-                mediumAd = ad
-                mediumLoading = false
-            },
-            onFailed = { error ->
-                mediumLoading = false
-                mediumError = error
-            }
-        )
-    }
-
-    // Load large ad
-    LaunchedEffect(Unit) {
-        loadNativeAd(
-            onLoaded = { ad ->
-                largeAd = ad
-                largeLoading = false
-            },
-            onFailed = { error ->
-                largeLoading = false
-                largeError = error
-            }
-        )
-    }
-
-    // Load full width media ad (CTR Optimized)
+    // SDK preloader는 광고를 한 번에 하나씩 공급하므로, 8개를 동시에 await하면
+    // 뒤쪽 대기자는 공급이 도달하기 전에 타임아웃됩니다. 화면 순서대로 순차
+    // 로드해 위에서부터 점진적으로 채웁니다.
     LaunchedEffect(Unit) {
         loadNativeAd(
             onLoaded = { ad ->
@@ -226,10 +158,6 @@ fun MainScreen() {
                 fullWidthMediaError = error
             }
         )
-    }
-
-    // Load content ad (CTR Optimized)
-    LaunchedEffect(Unit) {
         loadNativeAd(
             onLoaded = { ad ->
                 contentAd = ad
@@ -240,10 +168,6 @@ fun MainScreen() {
                 contentError = error
             }
         )
-    }
-
-    // Load app install ad (CTR Optimized)
-    LaunchedEffect(Unit) {
         loadNativeAd(
             onLoaded = { ad ->
                 appInstallAd = ad
@@ -252,6 +176,56 @@ fun MainScreen() {
             onFailed = { error ->
                 appInstallLoading = false
                 appInstallError = error
+            }
+        )
+        loadNativeAd(
+            onLoaded = { ad ->
+                headlineAd = ad
+                headlineLoading = false
+            },
+            onFailed = { error ->
+                headlineLoading = false
+                headlineError = error
+            }
+        )
+        loadNativeAd(
+            onLoaded = { ad ->
+                smallAd = ad
+                smallLoading = false
+            },
+            onFailed = { error ->
+                smallLoading = false
+                smallError = error
+            }
+        )
+        loadNativeAd(
+            onLoaded = { ad ->
+                iconSmallAd = ad
+                iconSmallLoading = false
+            },
+            onFailed = { error ->
+                iconSmallLoading = false
+                iconSmallError = error
+            }
+        )
+        loadNativeAd(
+            onLoaded = { ad ->
+                mediumAd = ad
+                mediumLoading = false
+            },
+            onFailed = { error ->
+                mediumLoading = false
+                mediumError = error
+            }
+        )
+        loadNativeAd(
+            onLoaded = { ad ->
+                largeAd = ad
+                largeLoading = false
+            },
+            onFailed = { error ->
+                largeLoading = false
+                largeError = error
             }
         )
     }
