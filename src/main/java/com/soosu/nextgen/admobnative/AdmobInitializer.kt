@@ -1,6 +1,8 @@
 package com.soosu.nextgen.admobnative
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
 import com.google.android.libraries.ads.mobile.sdk.common.AgeRestrictedTreatment
@@ -17,6 +19,9 @@ object AdmobInitializer {
 
     private const val TAG = "AdmobInitializer"
     private val mutex = Mutex()
+    private val listenerLock = Any()
+    private val pendingListeners = mutableListOf<() -> Unit>()
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     @Volatile
     private var initialized = false
@@ -79,8 +84,45 @@ object AdmobInitializer {
                     MobileAds.setRequestConfiguration(builder.build())
                 }
             }
+
+            notifyInitialized()
         }
     }
 
     fun isInitialized(): Boolean = initialized
+
+    /**
+     * Runs [listener] once the SDK is initialized.
+     *
+     * If the SDK is already initialized the listener is posted to the main
+     * thread immediately; otherwise it is queued and posted after
+     * [initialize] completes. Listeners are always invoked on the main thread
+     * so they can safely start preloaders.
+     *
+     * Note: when an app initializes the SDK by calling `MobileAds.initialize`
+     * directly instead of [initialize], listeners queued before that point are
+     * never invoked.
+     */
+    fun whenInitialized(listener: () -> Unit) {
+        val runNow = synchronized(listenerLock) {
+            if (initialized || MobileAds.isInitialized) {
+                true
+            } else {
+                pendingListeners.add(listener)
+                false
+            }
+        }
+        if (runNow) {
+            mainHandler.post(listener)
+        }
+    }
+
+    private fun notifyInitialized() {
+        val listeners = synchronized(listenerLock) {
+            val snapshot = pendingListeners.toList()
+            pendingListeners.clear()
+            snapshot
+        }
+        listeners.forEach { mainHandler.post(it) }
+    }
 }

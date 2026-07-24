@@ -45,6 +45,12 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val preloadId = createPreloadId(config, nextManagerId.getAndIncrement())
 
+    private val initLoadLock = Any()
+
+    // Accessed only while holding initLoadLock.
+    private var pendingInitLoadContext: Context? = null
+    private var initLoadListenerRegistered = false
+
     // Accessed only while holding preloaderLock.
     private var activePreloadKeywords: List<String>? = null
     private var preloadGeneration: Long = 0
@@ -120,12 +126,17 @@ class AppOpenAdManager(private val config: AdmobConfig) {
      * Starts the SDK-managed preloader, or performs the original one-shot load
      * when preloading has been explicitly disabled.
      *
+     * When the SDK is not initialized yet, the call is recorded and replayed
+     * automatically once [AdmobInitializer.initialize] completes. A
+     * [stopPreloading] call before that point cancels the pending load.
+     *
      * The [context] parameter is intentionally retained for source and binary
      * compatibility with existing applications.
      */
     fun loadAd(context: Context) {
         if (!MobileAds.isInitialized) {
-            Log.d(TAG, "MobileAds is not initialized yet, skipping app open ad load")
+            Log.d(TAG, "MobileAds is not initialized yet, deferring app open ad load")
+            schedulePendingInitLoad(context.applicationContext)
             return
         }
 
@@ -145,11 +156,41 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     }
 
     /**
+     * Records a [loadAd] call made before SDK initialization and replays it
+     * once [AdmobInitializer.initialize] completes. Only the application
+     * context is retained. The replayed call re-runs every [loadAd] gate
+     * (suppression, ad unit, preloader mode), so policy checks still apply.
+     */
+    private fun schedulePendingInitLoad(appContext: Context) {
+        val register = synchronized(initLoadLock) {
+            pendingInitLoadContext = appContext
+            if (initLoadListenerRegistered) {
+                false
+            } else {
+                initLoadListenerRegistered = true
+                true
+            }
+        }
+        if (!register) return
+
+        AdmobInitializer.whenInitialized {
+            val context = synchronized(initLoadLock) {
+                initLoadListenerRegistered = false
+                pendingInitLoadContext.also { pendingInitLoadContext = null }
+            }
+            context?.let(::loadAd)
+        }
+    }
+
+    /**
      * Stops this manager's SDK-managed buffer and releases all queued ads.
      *
      * A later [loadAd] or [showAdIfAvailable] call can start it again.
      */
     fun stopPreloading(): Boolean {
+        synchronized(initLoadLock) {
+            pendingInitLoadContext = null
+        }
         val pending: PendingShow?
         val stopped: Boolean
         synchronized(preloaderLock) {

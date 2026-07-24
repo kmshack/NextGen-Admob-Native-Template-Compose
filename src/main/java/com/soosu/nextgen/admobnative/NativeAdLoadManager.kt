@@ -126,6 +126,7 @@ class NativeAdLoadManager private constructor(
     private val elapsedRealtime: () -> Long,
     private val postToMain: (() -> Unit) -> Unit,
     private val beforeExpirationRestart: () -> Unit,
+    private val registerInitListener: (listener: () -> Unit) -> Unit,
 ) : AutoCloseable {
 
     constructor() : this(
@@ -134,12 +135,17 @@ class NativeAdLoadManager private constructor(
         elapsedRealtime = SystemClock::elapsedRealtime,
         postToMain = createMainThreadPoster(),
         beforeExpirationRestart = {},
+        registerInitListener = AdmobInitializer::whenInitialized,
     )
 
     private val lock = Any()
     private val pools = linkedMapOf<String, Pool>()
     private val managerId = nextManagerId.getAndIncrement()
     private var nextPoolId = 0L
+
+    // Guarded by [lock]. True while an SDK-initialization listener that will
+    // resume pending starts is registered but has not fired yet.
+    private var initResumeListenerRegistered = false
 
     /**
      * Registers or replaces a pool configuration.
@@ -207,13 +213,20 @@ class NativeAdLoadManager private constructor(
     /**
      * Starts the registered pool. Repeated calls are idempotent.
      *
+     * When the SDK is not initialized yet, the start is recorded and retried
+     * automatically once [AdmobInitializer.initialize] completes. A [stop] or
+     * [unregister] before that point cancels the pending start.
+     *
      * @return `true` when the pool is active (including when it was already
-     * active), or `false` when the key is missing, the SDK is not initialized,
-     * or the SDK rejected the configuration.
+     * active), or `false` when the key is missing, the SDK is not initialized
+     * (start deferred), or the SDK rejected the configuration.
      */
     fun start(key: String): Boolean {
         requireValidKey(key)
-        if (!isSdkInitialized()) return false
+        if (!isSdkInitialized()) {
+            schedulePendingStart(key)
+            return false
+        }
 
         val started = synchronized(lock) {
             val pool = pools[key] ?: return@synchronized false
@@ -256,6 +269,31 @@ class NativeAdLoadManager private constructor(
 
         dispatchStateChanged(key)
         return started
+    }
+
+    private fun schedulePendingStart(key: String) {
+        val register = synchronized(lock) {
+            val pool = pools[key] ?: return
+            pool.startPending = true
+            if (initResumeListenerRegistered) {
+                false
+            } else {
+                initResumeListenerRegistered = true
+                true
+            }
+        }
+        if (!register) return
+
+        registerInitListener {
+            val pendingKeys = synchronized(lock) {
+                initResumeListenerRegistered = false
+                pools.values
+                    .filter { it.startPending }
+                    .onEach { it.startPending = false }
+                    .map { it.key }
+            }
+            pendingKeys.forEach(::start)
+        }
     }
 
     /**
@@ -631,7 +669,10 @@ class NativeAdLoadManager private constructor(
     fun stop(key: String): Boolean {
         requireValidKey(key)
         val stopped = synchronized(lock) {
-            pools[key]?.let(::stopLocked) ?: false
+            pools[key]?.let { pool ->
+                pool.startPending = false
+                stopLocked(pool)
+            } ?: false
         }
         dispatchStateChanged(key)
         return stopped
@@ -690,6 +731,7 @@ class NativeAdLoadManager private constructor(
     fun stopAll() {
         val keys = synchronized(lock) {
             pools.values.forEach { pool ->
+                pool.startPending = false
                 if (pool.isStarted) {
                     stopLocked(pool)
                 }
@@ -947,6 +989,7 @@ class NativeAdLoadManager private constructor(
         var config: NativeAdLoadConfig,
         val listeners: MutableSet<NativeAdLoadListener> = linkedSetOf(),
         var isStarted: Boolean = false,
+        var startPending: Boolean = false,
         var generation: Long = 0L,
         var startedAtElapsedMs: Long = 0L,
         var lastError: LoadAdError? = null,
@@ -986,12 +1029,14 @@ class NativeAdLoadManager private constructor(
             elapsedRealtime: () -> Long,
             postToMain: (() -> Unit) -> Unit,
             beforeExpirationRestart: () -> Unit = {},
+            registerInitListener: (listener: () -> Unit) -> Unit = {},
         ): NativeAdLoadManager = NativeAdLoadManager(
             gateway = gateway,
             isSdkInitialized = isSdkInitialized,
             elapsedRealtime = elapsedRealtime,
             postToMain = postToMain,
             beforeExpirationRestart = beforeExpirationRestart,
+            registerInitListener = registerInitListener,
         )
     }
 }

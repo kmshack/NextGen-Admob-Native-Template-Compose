@@ -469,6 +469,91 @@ class NativeAdLoadManagerTest {
         assertNull(manager.getState("missing"))
     }
 
+    @Test
+    fun `start before SDK initialization resumes automatically after init`() {
+        val gateway = FakeNativeAdPreloaderGateway()
+        var sdkInitialized = false
+        val initListeners = mutableListOf<() -> Unit>()
+        val manager = createDeferredInitManager(gateway, initListeners) {
+            sdkInitialized
+        }
+
+        manager.register("feed", nativeRequest(TEST_AD_UNIT_ID))
+        assertFalse(manager.start("feed"))
+        assertEquals(0, gateway.startCalls)
+        assertEquals(1, initListeners.size)
+
+        sdkInitialized = true
+        initListeners.single().invoke()
+
+        assertTrue(manager.isStarted("feed"))
+        assertEquals(1, gateway.startCalls)
+    }
+
+    @Test
+    fun `pending starts share one init listener and each resume once`() {
+        val gateway = FakeNativeAdPreloaderGateway()
+        var sdkInitialized = false
+        val initListeners = mutableListOf<() -> Unit>()
+        val manager = createDeferredInitManager(gateway, initListeners) {
+            sdkInitialized
+        }
+
+        manager.register("feed", nativeRequest(TEST_AD_UNIT_ID))
+        manager.register("home", nativeRequest(SECOND_TEST_AD_UNIT_ID))
+        manager.start("feed")
+        manager.start("feed")
+        manager.start("home")
+        assertEquals(1, initListeners.size)
+
+        sdkInitialized = true
+        initListeners.single().invoke()
+
+        assertTrue(manager.isStarted("feed"))
+        assertTrue(manager.isStarted("home"))
+        assertEquals(2, gateway.startCalls)
+    }
+
+    @Test
+    fun `stop before initialization cancels the pending start`() {
+        val gateway = FakeNativeAdPreloaderGateway()
+        var sdkInitialized = false
+        val initListeners = mutableListOf<() -> Unit>()
+        val manager = createDeferredInitManager(gateway, initListeners) {
+            sdkInitialized
+        }
+
+        manager.register("feed", nativeRequest(TEST_AD_UNIT_ID))
+        manager.start("feed")
+        manager.stop("feed")
+
+        sdkInitialized = true
+        initListeners.single().invoke()
+
+        assertFalse(manager.isStarted("feed"))
+        assertEquals(0, gateway.startCalls)
+    }
+
+    @Test
+    fun `unregister before initialization cancels the pending start`() {
+        val gateway = FakeNativeAdPreloaderGateway()
+        var sdkInitialized = false
+        val initListeners = mutableListOf<() -> Unit>()
+        val manager = createDeferredInitManager(gateway, initListeners) {
+            sdkInitialized
+        }
+
+        manager.register("feed", nativeRequest(TEST_AD_UNIT_ID))
+        manager.start("feed")
+        manager.unregister("feed")
+
+        sdkInitialized = true
+        initListeners.single().invoke()
+
+        assertFalse(manager.isRegistered("feed"))
+        assertEquals(0, gateway.startCalls)
+    }
+
     private fun createManager(
         gateway: FakeNativeAdPreloaderGateway,
     ): NativeAdLoadManager = NativeAdLoadManager.createForTesting(
@@ -476,6 +561,18 @@ class NativeAdLoadManagerTest {
         isSdkInitialized = { true },
         elapsedRealtime = { 1L },
         postToMain = { it() },
+    )
+
+    private fun createDeferredInitManager(
+        gateway: FakeNativeAdPreloaderGateway,
+        initListeners: MutableList<() -> Unit>,
+        isSdkInitialized: () -> Boolean,
+    ): NativeAdLoadManager = NativeAdLoadManager.createForTesting(
+        gateway = gateway,
+        isSdkInitialized = isSdkInitialized,
+        elapsedRealtime = { 1L },
+        postToMain = { it() },
+        registerInitListener = { initListeners.add(it) },
     )
 
     private fun nativeRequest(adUnitId: String): NativeAdRequest {
