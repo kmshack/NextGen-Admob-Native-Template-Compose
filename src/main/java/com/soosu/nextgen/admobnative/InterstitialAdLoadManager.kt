@@ -125,7 +125,6 @@ class InterstitialAdLoadManager private constructor(
     private val isSdkInitialized: () -> Boolean,
     private val elapsedRealtime: () -> Long,
     private val postToMain: (() -> Unit) -> Unit,
-    private val beforeExpirationRestart: () -> Unit,
     private val registerInitListener: (listener: () -> Unit) -> Unit,
 ) : AutoCloseable {
 
@@ -134,7 +133,6 @@ class InterstitialAdLoadManager private constructor(
         isSdkInitialized = { MobileAds.isInitialized },
         elapsedRealtime = SystemClock::elapsedRealtime,
         postToMain = createMainThreadPoster(),
-        beforeExpirationRestart = {},
         registerInitListener = AdmobInitializer::whenInitialized,
     )
 
@@ -153,10 +151,14 @@ class InterstitialAdLoadManager private constructor(
     /**
      * Registers or replaces a pool configuration.
      *
-     * Replacing an active key destroys its queued ads and immediately starts a
-     * new generation with the new request. Existing listeners remain attached.
-     * Register stable keys once at application/controller scope rather than
-     * from a recomposing UI function.
+     * This is destructive: replacing an active key destroys its queued ads and
+     * immediately starts a new generation, which costs `bufferSize` fresh ad
+     * requests. It does so even when the new configuration is equivalent,
+     * because [AdRequest] has no usable identity. Prefer [registerIfAbsent] for
+     * the common "register once per key" case and call this only when the
+     * request really changed. Existing listeners remain attached. Register
+     * stable keys once at application/controller scope rather than from a
+     * recomposing UI function.
      */
     fun register(key: String, config: InterstitialAdLoadConfig) {
         requireValidKey(key)
@@ -226,6 +228,75 @@ class InterstitialAdLoadManager private constructor(
         maxAdAgeMs: Long = InterstitialAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
     ) {
         register(
+            key = key,
+            config = InterstitialAdLoadConfig(
+                request = request,
+                bufferSize = bufferSize,
+                maxAdAgeMs = maxAdAgeMs,
+            ),
+        )
+    }
+
+    /**
+     * Registers [config] only when [key] has no pool yet.
+     *
+     * Unlike [register] this never stops a running pool and never discards
+     * queued ads, so it is safe to call on every screen entry.
+     *
+     * @return `true` when a new pool was created
+     */
+    fun registerIfAbsent(key: String, config: InterstitialAdLoadConfig): Boolean {
+        requireValidKey(key)
+
+        val created = synchronized(lock) {
+            if (pools.containsKey(key)) return@synchronized false
+            pools[key] = Pool(
+                key = key,
+                sdkPreloadId = createSdkPreloadId(),
+                config = config,
+            )
+            true
+        }
+
+        if (created) {
+            dispatchStateChanged(key)
+        }
+        return created
+    }
+
+    /**
+     * Convenience overload that creates [InterstitialAdLoadConfig] from an ad
+     * unit ID.
+     */
+    @JvmOverloads
+    fun registerIfAbsent(
+        key: String,
+        adUnitId: String,
+        bufferSize: Int? = InterstitialAdLoadConfig.DEFAULT_BUFFER_SIZE,
+        maxAdAgeMs: Long = InterstitialAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
+    ): Boolean {
+        return registerIfAbsent(
+            key = key,
+            config = InterstitialAdLoadConfig(
+                request = AdRequest.Builder(adUnitId).build(),
+                bufferSize = bufferSize,
+                maxAdAgeMs = maxAdAgeMs,
+            ),
+        )
+    }
+
+    /**
+     * Convenience overload that creates [InterstitialAdLoadConfig] from a
+     * fully built request.
+     */
+    @JvmOverloads
+    fun registerIfAbsent(
+        key: String,
+        request: AdRequest,
+        bufferSize: Int? = InterstitialAdLoadConfig.DEFAULT_BUFFER_SIZE,
+        maxAdAgeMs: Long = InterstitialAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
+    ): Boolean {
+        return registerIfAbsent(
             key = key,
             config = InterstitialAdLoadConfig(
                 request = request,
@@ -355,7 +426,6 @@ class InterstitialAdLoadManager private constructor(
         if (!isSdkInitialized()) return null
 
         var adForCaller: InterstitialAd? = null
-        var expiredGeneration: PoolToken? = null
         var poolChanged = false
 
         synchronized(lock) {
@@ -372,37 +442,70 @@ class InterstitialAdLoadManager private constructor(
                 if (loadedAt == null && responseId != null) {
                     // An ad can become pollable before its preload callback is
                     // delivered. Ignore that callback if it arrives later.
-                    pool.consumedBeforeCallbackResponseIds.add(responseId)
+                    pool.forgetPendingResponseId(responseId)
                 }
 
-                val effectiveLoadedAt = loadedAt ?: pool.startedAtElapsedMs
-                if (!isExpired(pool, effectiveLoadedAt)) {
+                // An unknown load time is not treated as expired. The pool
+                // generation timestamp is only a lower bound, so using it here
+                // discarded ads that had just been refilled and forced a full
+                // pool restart, which cost an extra ad request per expiration.
+                if (!isExpired(pool, loadedAt)) {
                     adForCaller = ad
                     break
                 }
 
+                // Only the expired ad is dropped. The SDK refills one ad per
+                // consumed ad, so the pool recovers without a restart.
                 ad.destroy()
-                if (loadedAt == null) {
-                    // A generation timestamp is only a conservative lower
-                    // bound. Once it expires, restart instead of treating a
-                    // just-refilled but not-yet-tracked ad as old.
-                    expiredGeneration = PoolToken(
-                        sdkPreloadId = pool.sdkPreloadId,
-                        generation = pool.generation,
-                    )
-                    break
-                }
             }
         }
 
-        val generationToRestart = expiredGeneration
-        if (generationToRestart != null) {
-            beforeExpirationRestart()
-            restartExpiredPoolIfCurrent(key, generationToRestart)
-        } else if (poolChanged) {
+        if (poolChanged) {
             dispatchStateChanged(key)
         }
         return adForCaller
+    }
+
+    /**
+     * Drops queued ads that are older than the pool's `maxAdAgeMs`.
+     *
+     * Expiration cleanup is never performed by the query APIs, so call this
+     * explicitly when an app wants stale inventory dropped without consuming
+     * an ad. The SDK refills one ad per dropped ad.
+     *
+     * @return the number of ads that were destroyed
+     */
+    fun pruneExpired(key: String): Int {
+        requireValidKey(key)
+        if (!isSdkInitialized()) return 0
+
+        var destroyed = 0
+        synchronized(lock) {
+            val pool = pools[key] ?: return@synchronized
+            if (!pool.isStarted) return@synchronized
+
+            var remaining = gateway.getNumAdsAvailable(pool.sdkPreloadId)
+            while (remaining-- > 0) {
+                val loadedAt = gateway.peekAdResponseInfo(pool.sdkPreloadId)
+                    ?.responseId
+                    ?.let(pool.loadedAtByResponseId::get)
+                if (!isExpired(pool, loadedAt)) break
+
+                val ad = gateway.pollAd(pool.sdkPreloadId) ?: break
+                ad.responseIdOrNull()?.let { responseId ->
+                    if (pool.loadedAtByResponseId.remove(responseId) == null) {
+                        pool.forgetPendingResponseId(responseId)
+                    }
+                }
+                ad.destroy()
+                destroyed++
+            }
+        }
+
+        if (destroyed > 0) {
+            dispatchStateChanged(key)
+        }
+        return destroyed
     }
 
     /**
@@ -452,7 +555,11 @@ class InterstitialAdLoadManager private constructor(
                         key: String,
                         state: InterstitialAdLoadState,
                     ) {
-                        if (!state.isStarted) {
+                        if (state.isStarted) {
+                            // The pool may have become active with inventory
+                            // that predates this listener.
+                            pollIfReady()
+                        } else if (!isStartPending(key)) {
                             finish(null)
                         }
                     }
@@ -475,7 +582,10 @@ class InterstitialAdLoadManager private constructor(
                     removeListener(key, listener)
                 }
 
-                if (!isStarted(key)) {
+                // A start that was deferred until SDK initialization is still a
+                // start. Completing with null here made every caller that raced
+                // initialization treat a healthy pool as a load failure.
+                if (!isStarted(key) && !isStartPending(key)) {
                     finish(null)
                     return@suspendCancellableCoroutine
                 }
@@ -552,68 +662,35 @@ class InterstitialAdLoadManager private constructor(
 
     fun isShowingAd(): Boolean = isShowingAd
 
+    /**
+     * Reports whether the next ad in the queue is usable.
+     *
+     * This is a pure query: it never polls, destroys, or restarts a pool.
+     * Use [pruneExpired] to drop stale inventory.
+     */
     fun isAdAvailable(key: String): Boolean {
         requireValidKey(key)
         if (!isSdkInitialized()) return false
 
-        while (true) {
-            var expiredGeneration: PoolToken? = null
-            val available = synchronized(lock) {
-                val pool = pools[key] ?: return@synchronized false
-                if (!pool.isStarted ||
-                    !gateway.isAdAvailable(pool.sdkPreloadId)
-                ) {
-                    return@synchronized false
-                }
-
-                val responseInfo = gateway.peekAdResponseInfo(pool.sdkPreloadId)
-                val loadedAt = responseInfo
-                    ?.responseId
-                    ?.let(pool.loadedAtByResponseId::get)
-                val effectiveLoadedAt = loadedAt ?: pool.startedAtElapsedMs
-                if (!isExpired(pool, effectiveLoadedAt)) {
-                    return@synchronized true
-                }
-
-                if (loadedAt == null) {
-                    expiredGeneration = PoolToken(
-                        sdkPreloadId = pool.sdkPreloadId,
-                        generation = pool.generation,
-                    )
-                    return@synchronized false
-                }
-
-                val expiredAd = gateway.pollAd(pool.sdkPreloadId)
-                    ?: return@synchronized false
-                val expiredResponseId = expiredAd.responseIdOrNull()
-                if (expiredResponseId != null) {
-                    val removed = pool.loadedAtByResponseId.remove(expiredResponseId)
-                    if (removed == null) {
-                        pool.consumedBeforeCallbackResponseIds.add(expiredResponseId)
-                    }
-                }
-                expiredAd.destroy()
-                null
+        return synchronized(lock) {
+            val pool = pools[key] ?: return@synchronized false
+            if (!pool.isStarted || !gateway.isAdAvailable(pool.sdkPreloadId)) {
+                return@synchronized false
             }
 
-            val generationToRestart = expiredGeneration
-            if (generationToRestart != null) {
-                beforeExpirationRestart()
-                restartExpiredPoolIfCurrent(key, generationToRestart)
-                return false
-            }
-            when (available) {
-                true -> return true
-                false -> return false
-                null -> Unit
-            }
+            val loadedAt = gateway.peekAdResponseInfo(pool.sdkPreloadId)
+                ?.responseId
+                ?.let(pool.loadedAtByResponseId::get)
+            !isExpired(pool, loadedAt)
         }
     }
 
+    /**
+     * Returns the queued ad count reported by the SDK. Pure query.
+     */
     fun getNumAdsAvailable(key: String): Int {
         requireValidKey(key)
         if (!isSdkInitialized()) return 0
-        isAdAvailable(key)
         return synchronized(lock) {
             val pool = pools[key] ?: return@synchronized 0
             if (pool.isStarted) {
@@ -624,11 +701,11 @@ class InterstitialAdLoadManager private constructor(
         }
     }
 
+    /**
+     * Returns a snapshot of the pool. Pure query.
+     */
     fun getState(key: String): InterstitialAdLoadState? {
         requireValidKey(key)
-        if (isSdkInitialized()) {
-            isAdAvailable(key)
-        }
         return synchronized(lock) {
             pools[key]?.let(::stateLocked)
         }
@@ -642,6 +719,15 @@ class InterstitialAdLoadManager private constructor(
     fun isRegistered(key: String): Boolean {
         requireValidKey(key)
         return synchronized(lock) { pools.containsKey(key) }
+    }
+
+    /**
+     * Reports whether [start] was called before SDK initialization and is still
+     * waiting to be replayed.
+     */
+    fun isStartPending(key: String): Boolean {
+        requireValidKey(key)
+        return synchronized(lock) { pools[key]?.startPending == true }
     }
 
     fun isStarted(key: String): Boolean {
@@ -969,32 +1055,13 @@ class InterstitialAdLoadManager private constructor(
         return true
     }
 
-    private fun isExpired(pool: Pool, loadedAtElapsedMs: Long): Boolean {
-        if (loadedAtElapsedMs <= 0L) return false
+    /**
+     * A `null` [loadedAtElapsedMs] means the load time is unknown, which is
+     * never treated as expired.
+     */
+    private fun isExpired(pool: Pool, loadedAtElapsedMs: Long?): Boolean {
+        if (loadedAtElapsedMs == null || loadedAtElapsedMs <= 0L) return false
         return elapsedRealtime() - loadedAtElapsedMs >= pool.config.maxAdAgeMs
-    }
-
-    private fun restartExpiredPoolIfCurrent(
-        key: String,
-        expected: PoolToken,
-    ): Boolean {
-        return synchronized(lock) {
-            val pool = pools[key] ?: return@synchronized false
-            if (!pool.isStarted ||
-                pool.sdkPreloadId != expected.sdkPreloadId ||
-                pool.generation != expected.generation
-            ) {
-                return@synchronized false
-            }
-
-            // Keep the validation, stop, and restart under one monitor so an
-            // app-policy stop cannot be followed by an expiration restart.
-            if (!stopLocked(pool)) {
-                false
-            } else {
-                start(key)
-            }
-        }
     }
 
     private fun createSdkPreloadId(): String {
@@ -1013,23 +1080,36 @@ class InterstitialAdLoadManager private constructor(
         var startedAtElapsedMs: Long = 0L,
         var lastError: LoadAdError? = null,
         val loadedAtByResponseId: MutableMap<String, Long> = mutableMapOf(),
-        val consumedBeforeCallbackResponseIds: MutableSet<String> = mutableSetOf(),
-    )
+        val consumedBeforeCallbackResponseIds: MutableSet<String> =
+            object : LinkedHashSet<String>() {
+                override fun add(element: String): Boolean {
+                    val added = super.add(element)
+                    // A preload callback that never arrives would otherwise
+                    // retain its response id for the process lifetime.
+                    while (size > MAX_PENDING_RESPONSE_IDS) {
+                        val oldest = iterator()
+                        oldest.next()
+                        oldest.remove()
+                    }
+                    return added
+                }
+            },
+    ) {
+        fun forgetPendingResponseId(responseId: String) {
+            consumedBeforeCallbackResponseIds.add(responseId)
+        }
+    }
 
     private data class CallbackEvent(
         val listeners: List<InterstitialAdLoadListener>,
         val state: InterstitialAdLoadState,
     )
 
-    private data class PoolToken(
-        val sdkPreloadId: String,
-        val generation: Long,
-    )
-
     companion object {
         const val DEFAULT_AWAIT_TIMEOUT_MS: Long = 10_000L
 
         private const val SDK_PRELOAD_ID_PREFIX = "nextgen-interstitial-"
+        private const val MAX_PENDING_RESPONSE_IDS = 64
         private val nextManagerId = AtomicLong()
 
         private fun requireValidKey(key: String) {
@@ -1047,14 +1127,12 @@ class InterstitialAdLoadManager private constructor(
             isSdkInitialized: () -> Boolean,
             elapsedRealtime: () -> Long,
             postToMain: (() -> Unit) -> Unit,
-            beforeExpirationRestart: () -> Unit = {},
             registerInitListener: (listener: () -> Unit) -> Unit = {},
         ): InterstitialAdLoadManager = InterstitialAdLoadManager(
             gateway = gateway,
             isSdkInitialized = isSdkInitialized,
             elapsedRealtime = elapsedRealtime,
             postToMain = postToMain,
-            beforeExpirationRestart = beforeExpirationRestart,
             registerInitListener = registerInitListener,
         )
     }

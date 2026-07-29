@@ -4,38 +4,37 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
+import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
 import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
-import com.google.android.libraries.ads.mobile.sdk.common.Ad
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdPreloader
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
 import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.common.PreloadCallback
 import com.google.android.libraries.ads.mobile.sdk.common.PreloadConfiguration
 import com.google.android.libraries.ads.mobile.sdk.common.ResponseInfo
-import com.google.android.libraries.ads.mobile.sdk.nativead.CustomNativeAd
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoadResult
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdPreloader
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdRequest
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Configuration for one independently managed native ad preload pool.
+ * Configuration for one independently managed banner ad preload pool.
  *
- * Pass a fully built [NativeAdRequest] so request options, keywords, custom
- * formats, banner sizes, and mediation extras are preserved.
+ * Pass a fully built [BannerAdRequest] so the ad size, keywords, collapsible
+ * options, and mediation extras are preserved. The size is part of the request,
+ * so a pool serves exactly one (ad unit, size) combination.
  *
  * @param request request used whenever this pool needs another ad
  * @param bufferSize maximum number of ready ads for this pool. `null` delegates
- * sizing to the SDK. The library default is one because native ads can have a
- * comparatively large memory footprint.
+ * sizing to the SDK, whose current default is two. The library default is one
+ * because a banner slot consumes a single ad at a time, and every buffered ad
+ * that is never shown is still a billed ad request.
  * @param maxAdAgeMs maximum queued-ad age this manager will return. Expiration
  * is checked when the pool is accessed; ads already handed to a caller are not
  * managed by this value.
  */
-data class NativeAdLoadConfig @JvmOverloads constructor(
-    val request: NativeAdRequest,
+data class BannerAdLoadConfig @JvmOverloads constructor(
+    val request: BannerAdRequest,
     val bufferSize: Int? = DEFAULT_BUFFER_SIZE,
     val maxAdAgeMs: Long = DEFAULT_MAX_AD_AGE_MS,
 ) {
@@ -55,12 +54,12 @@ data class NativeAdLoadConfig @JvmOverloads constructor(
 }
 
 /**
- * Snapshot of a registered native ad pool.
+ * Snapshot of a registered banner ad pool.
  *
  * [isLoading] means that the SDK preloader is active but currently has no
  * pollable ad. A preload failure is non-terminal because the SDK keeps retrying.
  */
-data class NativeAdLoadState(
+data class BannerAdLoadState(
     val isStarted: Boolean,
     val availableCount: Int,
     val isLoading: Boolean,
@@ -68,14 +67,14 @@ data class NativeAdLoadState(
 )
 
 /**
- * Listener for a single key registered in [NativeAdLoadManager].
+ * Listener for a single key registered in [BannerAdLoadManager].
  *
  * Listener methods are posted to the main thread after the SDK's
  * [PreloadCallback] has returned, so it is safe to update UI state or call back
- * into [NativeAdLoadManager].
+ * into [BannerAdLoadManager].
  */
-interface NativeAdLoadListener {
-    fun onStateChanged(key: String, state: NativeAdLoadState) = Unit
+interface BannerAdLoadListener {
+    fun onStateChanged(key: String, state: BannerAdLoadState) = Unit
 
     fun onAdPreloaded(
         key: String,
@@ -89,13 +88,13 @@ interface NativeAdLoadListener {
 }
 
 /**
- * Java-friendly no-op adapter for [NativeAdLoadListener].
+ * Java-friendly no-op adapter for [BannerAdLoadListener].
  *
- * Kotlin callers can implement [NativeAdLoadListener] directly. Java callers
+ * Kotlin callers can implement [BannerAdLoadListener] directly. Java callers
  * can extend this class and override only the callbacks they need.
  */
-abstract class NativeAdLoadListenerAdapter : NativeAdLoadListener {
-    override fun onStateChanged(key: String, state: NativeAdLoadState) = Unit
+abstract class BannerAdLoadListenerAdapter : BannerAdLoadListener {
+    override fun onStateChanged(key: String, state: BannerAdLoadState) = Unit
 
     override fun onAdPreloaded(
         key: String,
@@ -109,19 +108,24 @@ abstract class NativeAdLoadListenerAdapter : NativeAdLoadListener {
 }
 
 /**
- * Application-scoped manager for Next-Gen SDK native ad preload pools.
+ * Application-scoped manager for Next-Gen SDK banner ad preload pools.
  *
  * Loading mechanics live here; app policy does not. Consent, paid-user,
  * connectivity, and Remote Config checks should decide when the app calls
  * [start], [stop], or [unregister].
  *
- * Each key owns an independent SDK buffer. Calling [pollResult] transfers
- * ownership of the returned ad to the caller. The caller must eventually call
- * `destroy()` on the contained ad; stopping this manager only destroys ads that
- * are still queued in the SDK.
+ * Each key owns an independent SDK buffer. Calling [pollAd] transfers ownership
+ * of the returned [BannerAd] to the caller, which then attaches it with
+ * `getView(activity)` and must eventually call `destroy()` on it. Stopping this
+ * manager only destroys ads that are still queued in the SDK.
+ *
+ * Do not tie a pool's lifetime to a screen. Destroying a pool on every screen
+ * exit throws away buffered ads that were already requested and re-requests the
+ * whole buffer on the next entry. Keep pools at application or ad-controller
+ * scope and only destroy the individual [BannerAd] instances that a screen owns.
  */
-class NativeAdLoadManager private constructor(
-    private val gateway: NativeAdPreloaderGateway,
+class BannerAdLoadManager private constructor(
+    private val gateway: BannerAdPreloaderGateway,
     private val isSdkInitialized: () -> Boolean,
     private val elapsedRealtime: () -> Long,
     private val postToMain: (() -> Unit) -> Unit,
@@ -129,7 +133,7 @@ class NativeAdLoadManager private constructor(
 ) : AutoCloseable {
 
     constructor() : this(
-        gateway = SdkNativeAdPreloaderGateway,
+        gateway = SdkBannerAdPreloaderGateway,
         isSdkInitialized = { MobileAds.isInitialized },
         elapsedRealtime = SystemClock::elapsedRealtime,
         postToMain = createMainThreadPoster(),
@@ -151,13 +155,13 @@ class NativeAdLoadManager private constructor(
      * This is destructive: replacing an active key destroys its queued ads and
      * immediately starts a new generation, which costs `bufferSize` fresh ad
      * requests. It does so even when the new configuration is equivalent,
-     * because [NativeAdRequest] has no usable identity. Prefer
+     * because [BannerAdRequest] has no usable identity. Prefer
      * [registerIfAbsent] for the common "register once per key" case and call
      * this only when the request really changed. Existing listeners remain
      * attached. Register stable keys once at application/controller scope
      * rather than from a recomposing UI function.
      */
-    fun register(key: String, config: NativeAdLoadConfig) {
+    fun register(key: String, config: BannerAdLoadConfig) {
         requireValidKey(key)
 
         var replacementFailed = false
@@ -193,19 +197,43 @@ class NativeAdLoadManager private constructor(
     }
 
     /**
-     * Convenience overload that creates [NativeAdLoadConfig].
+     * Convenience overload that creates [BannerAdLoadConfig] from a fully built
+     * request.
      */
     @JvmOverloads
     fun register(
         key: String,
-        request: NativeAdRequest,
-        bufferSize: Int? = NativeAdLoadConfig.DEFAULT_BUFFER_SIZE,
-        maxAdAgeMs: Long = NativeAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
+        request: BannerAdRequest,
+        bufferSize: Int? = BannerAdLoadConfig.DEFAULT_BUFFER_SIZE,
+        maxAdAgeMs: Long = BannerAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
     ) {
         register(
             key = key,
-            config = NativeAdLoadConfig(
+            config = BannerAdLoadConfig(
                 request = request,
+                bufferSize = bufferSize,
+                maxAdAgeMs = maxAdAgeMs,
+            ),
+        )
+    }
+
+    /**
+     * Convenience overload that builds a plain request from an ad unit ID and
+     * size. Use the [BannerAdRequest] overload when keywords, collapsible
+     * options, or mediation extras are needed.
+     */
+    @JvmOverloads
+    fun register(
+        key: String,
+        adUnitId: String,
+        adSize: AdSize,
+        bufferSize: Int? = BannerAdLoadConfig.DEFAULT_BUFFER_SIZE,
+        maxAdAgeMs: Long = BannerAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
+    ) {
+        register(
+            key = key,
+            config = BannerAdLoadConfig(
+                request = BannerAdRequest.Builder(adUnitId, adSize).build(),
                 bufferSize = bufferSize,
                 maxAdAgeMs = maxAdAgeMs,
             ),
@@ -220,7 +248,7 @@ class NativeAdLoadManager private constructor(
      *
      * @return `true` when a new pool was created
      */
-    fun registerIfAbsent(key: String, config: NativeAdLoadConfig): Boolean {
+    fun registerIfAbsent(key: String, config: BannerAdLoadConfig): Boolean {
         requireValidKey(key)
 
         val created = synchronized(lock) {
@@ -240,19 +268,42 @@ class NativeAdLoadManager private constructor(
     }
 
     /**
-     * Convenience overload that creates [NativeAdLoadConfig].
+     * Convenience overload that creates [BannerAdLoadConfig] from a fully built
+     * request.
      */
     @JvmOverloads
     fun registerIfAbsent(
         key: String,
-        request: NativeAdRequest,
-        bufferSize: Int? = NativeAdLoadConfig.DEFAULT_BUFFER_SIZE,
-        maxAdAgeMs: Long = NativeAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
+        request: BannerAdRequest,
+        bufferSize: Int? = BannerAdLoadConfig.DEFAULT_BUFFER_SIZE,
+        maxAdAgeMs: Long = BannerAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
     ): Boolean {
         return registerIfAbsent(
             key = key,
-            config = NativeAdLoadConfig(
+            config = BannerAdLoadConfig(
                 request = request,
+                bufferSize = bufferSize,
+                maxAdAgeMs = maxAdAgeMs,
+            ),
+        )
+    }
+
+    /**
+     * Convenience overload that builds a plain request from an ad unit ID and
+     * size.
+     */
+    @JvmOverloads
+    fun registerIfAbsent(
+        key: String,
+        adUnitId: String,
+        adSize: AdSize,
+        bufferSize: Int? = BannerAdLoadConfig.DEFAULT_BUFFER_SIZE,
+        maxAdAgeMs: Long = BannerAdLoadConfig.DEFAULT_MAX_AD_AGE_MS,
+    ): Boolean {
+        return registerIfAbsent(
+            key = key,
+            config = BannerAdLoadConfig(
+                request = BannerAdRequest.Builder(adUnitId, adSize).build(),
                 bufferSize = bufferSize,
                 maxAdAgeMs = maxAdAgeMs,
             ),
@@ -370,19 +421,14 @@ class NativeAdLoadManager private constructor(
     }
 
     /**
-     * Polls any success result supported by [NativeAdPreloader].
-     *
-     * The result can be [NativeAdLoadResult.NativeAdSuccess],
-     * [NativeAdLoadResult.CustomNativeAdSuccess], or
-     * [NativeAdLoadResult.BannerAdSuccess]. Ownership transfers to the caller.
+     * Consumes one ready [BannerAd]. Ownership transfers to the caller, which
+     * must attach it with `getView(activity)` and eventually `destroy()` it.
      */
-    fun pollResult(
-        key: String,
-    ): NativeAdLoadResult.NativeAdLoadSuccessResult? {
+    fun pollAd(key: String): BannerAd? {
         requireValidKey(key)
         if (!isSdkInitialized()) return null
 
-        var resultForCaller: NativeAdLoadResult.NativeAdLoadSuccessResult? = null
+        var adForCaller: BannerAd? = null
         var poolChanged = false
 
         synchronized(lock) {
@@ -391,10 +437,9 @@ class NativeAdLoadManager private constructor(
 
             var remaining = gateway.getNumAdsAvailable(pool.sdkPreloadId)
             while (remaining-- > 0) {
-                val result = gateway.pollAd(pool.sdkPreloadId) ?: break
+                val ad = gateway.pollAd(pool.sdkPreloadId) ?: break
                 poolChanged = true
 
-                val ad = result.containedAd()
                 val responseId = ad.responseIdOrNull()
                 val loadedAt = responseId?.let(pool.loadedAtByResponseId::remove)
                 if (loadedAt == null && responseId != null) {
@@ -405,10 +450,9 @@ class NativeAdLoadManager private constructor(
 
                 // An unknown load time is not treated as expired. The pool
                 // generation timestamp is only a lower bound, so using it here
-                // discarded ads that had just been refilled and forced a full
-                // pool restart, which cost an extra ad request per expiration.
+                // would discard ads that had just been refilled.
                 if (!isExpired(pool, loadedAt)) {
-                    resultForCaller = result
+                    adForCaller = ad
                     break
                 }
 
@@ -421,7 +465,7 @@ class NativeAdLoadManager private constructor(
         if (poolChanged) {
             dispatchStateChanged(key)
         }
-        return resultForCaller
+        return adForCaller
     }
 
     /**
@@ -444,14 +488,12 @@ class NativeAdLoadManager private constructor(
 
             var remaining = gateway.getNumAdsAvailable(pool.sdkPreloadId)
             while (remaining-- > 0) {
-                val responseInfo = gateway.peekAdResponseInfo(pool.sdkPreloadId)
-                val loadedAt = responseInfo
+                val loadedAt = gateway.peekAdResponseInfo(pool.sdkPreloadId)
                     ?.responseId
                     ?.let(pool.loadedAtByResponseId::get)
                 if (!isExpired(pool, loadedAt)) break
 
-                val result = gateway.pollAd(pool.sdkPreloadId) ?: break
-                val ad = result.containedAd()
+                val ad = gateway.pollAd(pool.sdkPreloadId) ?: break
                 ad.responseIdOrNull()?.let { responseId ->
                     if (pool.loadedAtByResponseId.remove(responseId) == null) {
                         pool.forgetPendingResponseId(responseId)
@@ -469,97 +511,55 @@ class NativeAdLoadManager private constructor(
     }
 
     /**
-     * Convenience poller for a request containing only
-     * [NativeAd.NativeAdType.NATIVE].
+     * Waits until an ad is ready in an already-started pool and consumes it.
+     * Returns `null` on timeout or when the pool is stopped.
      *
-     * For mixed native/custom/banner requests use [pollResult]. If a mixed
-     * request returns another result type here, that consumed ad is destroyed.
-     */
-    fun pollNativeAd(key: String): NativeAd? {
-        return when (val result = pollResult(key)) {
-            is NativeAdLoadResult.NativeAdSuccess -> result.ad
-            null -> null
-            else -> {
-                result.containedAd().destroy()
-                null
-            }
-        }
-    }
-
-    /**
-     * Convenience poller for a custom-native-only request.
-     */
-    fun pollCustomNativeAd(key: String): CustomNativeAd? {
-        return when (val result = pollResult(key)) {
-            is NativeAdLoadResult.CustomNativeAdSuccess -> result.ad
-            null -> null
-            else -> {
-                result.containedAd().destroy()
-                null
-            }
-        }
-    }
-
-    /**
-     * Convenience poller for a banner-only native request.
-     */
-    fun pollBannerAd(key: String): BannerAd? {
-        return when (val result = pollResult(key)) {
-            is NativeAdLoadResult.BannerAdSuccess -> result.ad
-            null -> null
-            else -> {
-                result.containedAd().destroy()
-                null
-            }
-        }
-    }
-
-    /**
-     * Waits until a result is ready in an already-started pool and consumes one
-     * result. Returns `null` on timeout or when the pool is stopped.
+     * A start that was deferred until SDK initialization still counts as
+     * started, so a caller that races initialization keeps waiting instead of
+     * treating a healthy pool as a load failure.
      *
      * This method never starts a stopped pool. App policy must explicitly call
      * [start] after consent, paid-user, and Remote Config checks.
      */
-    suspend fun awaitResult(
+    suspend fun awaitAd(
         key: String,
         timeoutMs: Long = DEFAULT_AWAIT_TIMEOUT_MS,
-    ): NativeAdLoadResult.NativeAdLoadSuccessResult? {
+    ): BannerAd? {
         requireValidKey(key)
         require(timeoutMs > 0) { "timeoutMs must be greater than 0" }
 
         return withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine { continuation ->
-                lateinit var listener: NativeAdLoadListener
+                lateinit var listener: BannerAdLoadListener
                 val completed = AtomicBoolean(false)
 
-                fun finish(result: NativeAdLoadResult.NativeAdLoadSuccessResult?) {
+                fun finish(ad: BannerAd?) {
                     if (!completed.compareAndSet(false, true)) {
-                        result?.containedAd()?.destroy()
+                        ad?.destroy()
                         return
                     }
                     if (!continuation.isActive) {
-                        result?.containedAd()?.destroy()
+                        ad?.destroy()
                         return
                     }
                     removeListener(key, listener)
                     continuation.resume(
-                        value = result,
-                        onCancellation = { _, cancelledResult, _ ->
-                            cancelledResult?.containedAd()?.destroy()
+                        value = ad,
+                        onCancellation = { _, cancelledAd, _ ->
+                            cancelledAd?.destroy()
                         },
                     )
                 }
 
                 fun pollIfReady() {
                     if (!continuation.isActive) return
-                    pollResult(key)?.let(::finish)
+                    pollAd(key)?.let(::finish)
                 }
 
-                listener = object : NativeAdLoadListener {
+                listener = object : BannerAdLoadListener {
                     override fun onStateChanged(
                         key: String,
-                        state: NativeAdLoadState,
+                        state: BannerAdLoadState,
                     ) {
                         if (state.isStarted) {
                             // The pool may have become active with inventory
@@ -588,9 +588,6 @@ class NativeAdLoadManager private constructor(
                     removeListener(key, listener)
                 }
 
-                // A start that was deferred until SDK initialization is still a
-                // start. Completing with null here made every caller that raced
-                // initialization treat a healthy pool as a load failure.
                 if (!isStarted(key) && !isStartPending(key)) {
                     finish(null)
                     return@suspendCancellableCoroutine
@@ -599,25 +596,6 @@ class NativeAdLoadManager private constructor(
                 // Covers an ad that was already available or became available
                 // between listener registration and the active-state check.
                 postToMain(::pollIfReady)
-            }
-        }
-    }
-
-    /**
-     * Convenience awaiter for a native-only request.
-     *
-     * The returned [NativeAd] belongs to the caller and must be destroyed.
-     */
-    suspend fun awaitNativeAd(
-        key: String,
-        timeoutMs: Long = DEFAULT_AWAIT_TIMEOUT_MS,
-    ): NativeAd? {
-        return when (val result = awaitResult(key, timeoutMs)) {
-            is NativeAdLoadResult.NativeAdSuccess -> result.ad
-            null -> null
-            else -> {
-                result.containedAd().destroy()
-                null
             }
         }
     }
@@ -664,14 +642,14 @@ class NativeAdLoadManager private constructor(
     /**
      * Returns a snapshot of the pool. Pure query.
      */
-    fun getState(key: String): NativeAdLoadState? {
+    fun getState(key: String): BannerAdLoadState? {
         requireValidKey(key)
         return synchronized(lock) {
             pools[key]?.let(::stateLocked)
         }
     }
 
-    fun getConfig(key: String): NativeAdLoadConfig? {
+    fun getConfig(key: String): BannerAdLoadConfig? {
         requireValidKey(key)
         return synchronized(lock) { pools[key]?.config }
     }
@@ -707,7 +685,7 @@ class NativeAdLoadManager private constructor(
     @JvmOverloads
     fun addListener(
         key: String,
-        listener: NativeAdLoadListener,
+        listener: BannerAdLoadListener,
         emitCurrentState: Boolean = true,
     ): Boolean {
         requireValidKey(key)
@@ -720,7 +698,7 @@ class NativeAdLoadManager private constructor(
         return added
     }
 
-    fun removeListener(key: String, listener: NativeAdLoadListener): Boolean {
+    fun removeListener(key: String, listener: BannerAdLoadListener): Boolean {
         requireValidKey(key)
         return synchronized(lock) {
             pools[key]?.listeners?.remove(listener) ?: false
@@ -744,8 +722,8 @@ class NativeAdLoadManager private constructor(
     }
 
     /**
-     * Stops and removes a key. Ads already returned by poll/await remain the
-     * caller's responsibility.
+     * Stops and removes a key. Ads already returned by [pollAd] or [awaitAd]
+     * remain the caller's responsibility.
      */
     fun unregister(key: String): Boolean {
         requireValidKey(key)
@@ -790,7 +768,7 @@ class NativeAdLoadManager private constructor(
     /**
      * Stops all pools owned by this manager while retaining registrations.
      *
-     * This intentionally does not call `NativeAdPreloader.destroyAll()`, which
+     * This intentionally does not call `BannerAdPreloader.destroyAll()`, which
      * could destroy buffers owned by another manager or library.
      */
     fun stopAll() {
@@ -918,7 +896,7 @@ class NativeAdLoadManager private constructor(
         key: String,
         sdkPreloadId: String,
         generation: Long,
-        notify: (NativeAdLoadListener) -> Unit,
+        notify: (BannerAdLoadListener) -> Unit,
     ) {
         postToMain {
             val event = synchronized(lock) {
@@ -952,13 +930,13 @@ class NativeAdLoadManager private constructor(
         }
     }
 
-    private fun stateLocked(pool: Pool): NativeAdLoadState {
+    private fun stateLocked(pool: Pool): BannerAdLoadState {
         val availableCount = if (pool.isStarted && isSdkInitialized()) {
             gateway.getNumAdsAvailable(pool.sdkPreloadId)
         } else {
             0
         }
-        return NativeAdLoadState(
+        return BannerAdLoadState(
             isStarted = pool.isStarted,
             availableCount = availableCount,
             isLoading = pool.isStarted && availableCount == 0,
@@ -966,8 +944,8 @@ class NativeAdLoadManager private constructor(
         )
     }
 
-    private fun stoppedState(pool: Pool): NativeAdLoadState {
-        return NativeAdLoadState(
+    private fun stoppedState(pool: Pool): BannerAdLoadState {
+        return BannerAdLoadState(
             isStarted = false,
             availableCount = 0,
             isLoading = false,
@@ -977,7 +955,7 @@ class NativeAdLoadManager private constructor(
 
     private fun dispatchStateChanged(
         key: String,
-        onlyListener: NativeAdLoadListener? = null,
+        onlyListener: BannerAdLoadListener? = null,
     ) {
         postToMain {
             val event = synchronized(lock) {
@@ -1032,8 +1010,8 @@ class NativeAdLoadManager private constructor(
     private data class Pool(
         val key: String,
         val sdkPreloadId: String,
-        var config: NativeAdLoadConfig,
-        val listeners: MutableSet<NativeAdLoadListener> = linkedSetOf(),
+        var config: BannerAdLoadConfig,
+        val listeners: MutableSet<BannerAdLoadListener> = linkedSetOf(),
         var isStarted: Boolean = false,
         var startPending: Boolean = false,
         var generation: Long = 0L,
@@ -1061,14 +1039,14 @@ class NativeAdLoadManager private constructor(
     }
 
     private data class CallbackEvent(
-        val listeners: List<NativeAdLoadListener>,
-        val state: NativeAdLoadState,
+        val listeners: List<BannerAdLoadListener>,
+        val state: BannerAdLoadState,
     )
 
     companion object {
         const val DEFAULT_AWAIT_TIMEOUT_MS: Long = 10_000L
 
-        private const val SDK_PRELOAD_ID_PREFIX = "nextgen-native-"
+        private const val SDK_PRELOAD_ID_PREFIX = "nextgen-banner-"
         private const val MAX_PENDING_RESPONSE_IDS = 64
         private val nextManagerId = AtomicLong()
 
@@ -1083,12 +1061,12 @@ class NativeAdLoadManager private constructor(
 
         @JvmSynthetic
         internal fun createForTesting(
-            gateway: NativeAdPreloaderGateway,
+            gateway: BannerAdPreloaderGateway,
             isSdkInitialized: () -> Boolean,
             elapsedRealtime: () -> Long,
             postToMain: (() -> Unit) -> Unit,
             registerInitListener: (listener: () -> Unit) -> Unit = {},
-        ): NativeAdLoadManager = NativeAdLoadManager(
+        ): BannerAdLoadManager = BannerAdLoadManager(
             gateway = gateway,
             isSdkInitialized = isSdkInitialized,
             elapsedRealtime = elapsedRealtime,
@@ -1098,16 +1076,14 @@ class NativeAdLoadManager private constructor(
     }
 }
 
-internal interface NativeAdPreloaderGateway {
+internal interface BannerAdPreloaderGateway {
     fun start(
         preloadId: String,
         configuration: PreloadConfiguration,
         callback: PreloadCallback,
     ): Boolean
 
-    fun pollAd(
-        preloadId: String,
-    ): NativeAdLoadResult.NativeAdLoadSuccessResult?
+    fun pollAd(preloadId: String): BannerAd?
 
     fun peekAdResponseInfo(preloadId: String): ResponseInfo?
 
@@ -1118,39 +1094,28 @@ internal interface NativeAdPreloaderGateway {
     fun getNumAdsAvailable(preloadId: String): Int
 }
 
-private object SdkNativeAdPreloaderGateway : NativeAdPreloaderGateway {
+private object SdkBannerAdPreloaderGateway : BannerAdPreloaderGateway {
     override fun start(
         preloadId: String,
         configuration: PreloadConfiguration,
         callback: PreloadCallback,
-    ): Boolean = NativeAdPreloader.start(preloadId, configuration, callback)
+    ): Boolean = BannerAdPreloader.start(preloadId, configuration, callback)
 
-    override fun pollAd(
-        preloadId: String,
-    ): NativeAdLoadResult.NativeAdLoadSuccessResult? =
-        NativeAdPreloader.pollAd(preloadId)
+    override fun pollAd(preloadId: String): BannerAd? =
+        BannerAdPreloader.pollAd(preloadId)
 
     override fun peekAdResponseInfo(preloadId: String): ResponseInfo? =
-        NativeAdPreloader.peekAdResponseInfo(preloadId)
+        BannerAdPreloader.peekAdResponseInfo(preloadId)
 
     override fun destroy(preloadId: String): Boolean =
-        NativeAdPreloader.destroy(preloadId)
+        BannerAdPreloader.destroy(preloadId)
 
     override fun isAdAvailable(preloadId: String): Boolean =
-        NativeAdPreloader.isAdAvailable(preloadId)
+        BannerAdPreloader.isAdAvailable(preloadId)
 
     override fun getNumAdsAvailable(preloadId: String): Int =
-        NativeAdPreloader.getNumAdsAvailable(preloadId)
+        BannerAdPreloader.getNumAdsAvailable(preloadId)
 }
 
-private fun NativeAdLoadResult.NativeAdLoadSuccessResult.containedAd(): Ad {
-    return when (this) {
-        is NativeAdLoadResult.NativeAdSuccess -> ad
-        is NativeAdLoadResult.CustomNativeAdSuccess -> ad
-        is NativeAdLoadResult.BannerAdSuccess -> ad
-        else -> error("Unsupported NativeAdLoadSuccessResult: ${this::class.java.name}")
-    }
-}
-
-private fun Ad.responseIdOrNull(): String? =
+private fun BannerAd.responseIdOrNull(): String? =
     runCatching { getResponseInfo().responseId }.getOrNull()

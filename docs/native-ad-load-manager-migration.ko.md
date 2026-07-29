@@ -484,3 +484,43 @@ manager.register(
 - [NativeAdPreloader API](https://developers.google.com/admob/android/next-gen/reference/com/google/android/libraries/ads/mobile/sdk/nativead/NativeAdPreloader)
 - [Native 광고 가이드와 1시간 캐시 권장](https://developers.google.com/admob/android/next-gen/native)
 - [Next-Gen callback thread 처리](https://developers.google.com/admob/android/next-gen/migration/handle-callbacks)
+
+## 1.7.4 변경 사항 — 요청 수 과다 수정
+
+실기기 계측(Pixel 9)에서 확인한 과요청 경로를 정리한 릴리스입니다.
+`InterstitialAdLoadManager`에도 동일하게 적용됩니다.
+
+### 동작 변경
+
+| 항목 | 이전 | 1.7.4 |
+|---|---|---|
+| SDK 초기화 전 `await*()` | 즉시 `null` 반환 | `startPending`이면 timeout까지 대기 |
+| 만료 광고 poll | 광고 폐기 + **pool 전체 재시작** | 해당 광고만 폐기, SDK 1:1 refill에 위임 |
+| 광고 load 시각을 모를 때 | pool 시작 시각으로 대체 판정 → 만료 처리 | age unknown으로 보고 만료로 처리하지 않음 |
+| `getState` / `getNumAdsAvailable` / `isAdAvailable` | 내부에서 poll·destroy·restart 발생 | 부작용 없는 순수 조회 |
+
+`await*()`가 즉시 `null`을 반환하던 문제가 가장 파급이 컸습니다. 앱들이 이를
+"로드 실패"로 처리해 재시도하는 동안, 정작 pool에 미리 채워둔 광고는 노출 없이
+버려졌습니다.
+
+### 추가된 API
+
+- `registerIfAbsent(key, ...)` — 이미 있는 pool은 건드리지 않습니다.
+  `register()`는 설정이 같아도 **무조건** stop → destroy → start 하므로
+  버퍼를 버리고 `bufferSize`만큼 다시 요청합니다. 화면 진입마다 호출되는
+  자리에는 `registerIfAbsent()`를 쓰세요.
+- `pruneExpired(key)` — 만료된 광고를 명시적으로 정리합니다. 조회 API가 더 이상
+  자동으로 정리하지 않으므로, 필요한 시점에 직접 호출합니다.
+- `isStartPending(key)` — SDK 초기화를 기다리는 중인지 확인합니다.
+
+### 앱에서 함께 확인할 것
+
+- `bufferSize`를 지정하지 않으면 **SDK 기본값 2**가 적용됩니다(배너·전면 실측).
+  슬롯이 동시에 2개를 소비하지 않는다면 1로 지정하세요.
+- preload pool을 화면 dispose마다 `destroy()`하지 마세요. 노출되지 않은 버퍼가
+  버려지고 다음 진입 때 통째로 다시 요청됩니다.
+- pool key에 사용자 데이터(예: 항목 제목)를 넣으면 항목 수만큼 pool이 늘어나고,
+  각 pool이 prefill 요청을 낸 뒤 마지막 refill 광고를 계속 들고 있습니다.
+- 같은 논리 슬롯에 대해 `await*()`를 동시에 여러 번 호출하면 각 호출이 서로 다른
+  광고를 소비합니다. 앱 계층에서 single-flight로 묶으세요.
+- 프리미엄 전환·consent 철회·Remote Config off 시점에 `stopAll()`을 호출하세요.

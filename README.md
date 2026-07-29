@@ -277,6 +277,55 @@ a hand-rolled `InterstitialAd.load()` implementation, see the
 
 ---
 
+## Banner Ad Preloading
+
+`BannerAdLoadManager` wraps the Next-Gen SDK `BannerAdPreloader` with the same
+pool model as the native and interstitial managers. Because `BannerAdRequest`
+carries the `AdSize`, one pool serves exactly one (ad unit, size) pair.
+
+```kotlin
+class MyApplication : Application() {
+    val bannerAdLoadManager = BannerAdLoadManager()
+
+    override fun onCreate() {
+        super.onCreate()
+        bannerAdLoadManager.registerIfAbsent(
+            key = HOME_MREC,
+            adUnitId = "YOUR_BANNER_AD_UNIT_ID",
+            adSize = AdSize.MEDIUM_RECTANGLE,
+        )
+        // start() after consent + SDK initialization; a call made earlier is
+        // deferred and resumed automatically.
+        bannerAdLoadManager.start(HOME_MREC)
+    }
+
+    companion object {
+        const val HOME_MREC = "home-mrec"
+    }
+}
+```
+
+Consume in a slot. Ownership transfers to the caller, which attaches the ad
+with `getView(activity)` and destroys it when the slot goes away:
+
+```kotlin
+val ad = app.bannerAdLoadManager.awaitAd(HOME_MREC) ?: return
+AndroidView(factory = { ad.getView(activity) })
+// later: ad.destroy()
+```
+
+Destroy the `BannerAd` a screen owns — not the pool. Calling `stop`/`unregister`
+on screen exit throws away buffered ads that were already requested and
+re-requests the whole buffer on the next entry. Reserve those for premium
+upgrades, consent withdrawal, and Remote Config off.
+
+`bufferSize` defaults to `1`. Leaving it unset delegates to the SDK, whose
+current default is `2` — a second ad that a single slot never shows is still a
+billed request. See the
+[Korean BannerAdLoadManager migration guide](docs/banner-ad-load-manager-migration.ko.md).
+
+---
+
 ## Available Templates
 
 The library provides eight pre-built templates optimized for different use cases:
@@ -1045,9 +1094,12 @@ NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
 | `nativeAd.images` | Not available (use `mediaContent`) |
 | `minSdk = 23` | `minSdk = 24` |
 
-After completing the SDK type migration, use the
-[NativeAdLoadManager migration guide](docs/native-ad-load-manager-migration.ko.md)
-to replace direct loads with SDK-managed preload pools.
+After completing the SDK type migration, use the per-format migration guides to
+replace direct loads with SDK-managed preload pools:
+
+- [NativeAdLoadManager](docs/native-ad-load-manager-migration.ko.md)
+- [InterstitialAdLoadManager](docs/interstitial-ad-load-manager-migration.ko.md)
+- [BannerAdLoadManager](docs/banner-ad-load-manager-migration.ko.md)
 
 ---
 

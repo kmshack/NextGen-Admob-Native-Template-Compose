@@ -25,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -264,7 +265,7 @@ class NativeAdLoadManagerTest {
     }
 
     @Test
-    fun `an untracked expired generation is discarded and restarted`() {
+    fun `an ad with an unknown load time is served instead of discarded`() {
         val gateway = FakeNativeAdPreloaderGateway()
         var now = 1L
         val manager = NativeAdLoadManager.createForTesting(
@@ -281,61 +282,152 @@ class NativeAdLoadManagerTest {
             maxAdAgeMs = 10L,
         )
         manager.start("short-cache")
+        // No preload callback was delivered, so the load time is unknown. The
+        // pool generation timestamp must not be used as a substitute.
         gateway.entries.single().results.add(
             NativeAdLoadResult.NativeAdSuccess(fakeNativeAd(destroyCalls)),
         )
         now = 20L
 
+        assertNotNull(manager.pollNativeAd("short-cache"))
+        assertEquals(0, destroyCalls.get())
+        assertEquals(1, gateway.startCalls)
+    }
+
+    @Test
+    fun `a tracked expired ad is dropped without restarting the pool`() {
+        val gateway = FakeNativeAdPreloaderGateway()
+        var now = 1L
+        val manager = NativeAdLoadManager.createForTesting(
+            gateway = gateway,
+            isSdkInitialized = { true },
+            elapsedRealtime = { now },
+            postToMain = { it() },
+        )
+        val destroyCalls = AtomicInteger()
+
+        manager.register(
+            key = "short-cache",
+            request = nativeRequest(TEST_AD_UNIT_ID),
+            maxAdAgeMs = 10L,
+        )
+        manager.start("short-cache")
+        val entry = gateway.entries.single()
+        val responseInfo = fakeResponseInfo("expired-response")
+        entry.results.add(
+            NativeAdLoadResult.NativeAdSuccess(
+                fakeNativeAd(destroyCalls, responseInfo),
+            ),
+        )
+        entry.callback.onAdPreloaded(entry.preloadId, responseInfo)
+        now = 20L
+
         assertNull(manager.pollNativeAd("short-cache"))
         assertEquals(1, destroyCalls.get())
-        assertEquals(2, gateway.startCalls)
+        // The SDK refills one ad per consumed ad, so no restart is needed.
+        assertEquals(1, gateway.startCalls)
         assertTrue(manager.isStarted("short-cache"))
     }
 
     @Test
-    fun `app policy stop wins over an expiration restart race`() {
+    fun `query APIs never poll destroy or restart a pool`() {
         val gateway = FakeNativeAdPreloaderGateway()
-        val now = AtomicLong(1L)
-        val expirationDetected = CountDownLatch(1)
-        val allowRestartCheck = CountDownLatch(1)
+        var now = 1L
         val manager = NativeAdLoadManager.createForTesting(
             gateway = gateway,
             isSdkInitialized = { true },
-            elapsedRealtime = now::get,
+            elapsedRealtime = { now },
             postToMain = { it() },
-            beforeExpirationRestart = {
-                expirationDetected.countDown()
-                check(allowRestartCheck.await(1, TimeUnit.SECONDS))
-            },
         )
-        val workerFailure = AtomicReference<Throwable?>()
+        val destroyCalls = AtomicInteger()
 
         manager.register(
-            key = "policy-gated",
+            key = "short-cache",
             request = nativeRequest(TEST_AD_UNIT_ID),
             maxAdAgeMs = 10L,
         )
-        manager.start("policy-gated")
+        manager.start("short-cache")
+        val entry = gateway.entries.single()
+        val responseInfo = fakeResponseInfo("expired-response")
+        entry.results.add(
+            NativeAdLoadResult.NativeAdSuccess(
+                fakeNativeAd(destroyCalls, responseInfo),
+            ),
+        )
+        entry.callback.onAdPreloaded(entry.preloadId, responseInfo)
+        now = 20L
+
+        assertFalse(manager.isAdAvailable("short-cache"))
+        assertEquals(1, manager.getNumAdsAvailable("short-cache"))
+        assertNotNull(manager.getState("short-cache"))
+
+        assertEquals(0, destroyCalls.get())
+        assertEquals(1, gateway.startCalls)
+        assertTrue(gateway.destroyedIds.isEmpty())
+        assertEquals(1, entry.results.size)
+
+        // Cleanup is opt-in.
+        assertEquals(1, manager.pruneExpired("short-cache"))
+        assertEquals(1, destroyCalls.get())
+        assertEquals(1, gateway.startCalls)
+    }
+
+    @Test
+    fun `await waits for a start that was deferred until SDK initialization`() =
+        runBlocking {
+            val gateway = FakeNativeAdPreloaderGateway()
+            val initListeners = mutableListOf<() -> Unit>()
+            var initialized = false
+            val manager = createDeferredInitManager(
+                gateway = gateway,
+                initListeners = initListeners,
+                isSdkInitialized = { initialized },
+            )
+
+            manager.register("feed", nativeRequest(TEST_AD_UNIT_ID))
+            assertFalse(manager.start("feed"))
+            assertTrue(manager.isStartPending("feed"))
+
+            val awaiting = async(start = CoroutineStart.UNDISPATCHED) {
+                manager.awaitNativeAd("feed", timeoutMs = Long.MAX_VALUE)
+            }
+            assertFalse(awaiting.isCompleted)
+
+            initialized = true
+            initListeners.single().invoke()
+
+            val entry = gateway.entries.single()
+            val responseInfo = fakeResponseInfo("late-response")
+            entry.results.add(
+                NativeAdLoadResult.NativeAdSuccess(
+                    fakeNativeAd(AtomicInteger(), responseInfo),
+                ),
+            )
+            entry.callback.onAdPreloaded(entry.preloadId, responseInfo)
+
+            assertNotNull(awaiting.await())
+        }
+
+    @Test
+    fun `registerIfAbsent leaves a running pool untouched`() {
+        val gateway = FakeNativeAdPreloaderGateway()
+        val manager = createManager(gateway)
+
+        assertTrue(
+            manager.registerIfAbsent("feed", nativeRequest(TEST_AD_UNIT_ID)),
+        )
+        manager.start("feed")
         gateway.entries.single().results.add(
             NativeAdLoadResult.NativeAdSuccess(fakeNativeAd(AtomicInteger())),
         )
-        now.set(20L)
 
-        val worker = thread {
-            runCatching {
-                manager.pollNativeAd("policy-gated")
-            }.exceptionOrNull()?.let(workerFailure::set)
-        }
-        assertTrue(expirationDetected.await(1, TimeUnit.SECONDS))
+        assertFalse(
+            manager.registerIfAbsent("feed", nativeRequest(SECOND_TEST_AD_UNIT_ID)),
+        )
 
-        manager.stop("policy-gated")
-        allowRestartCheck.countDown()
-        worker.join(1_000L)
-
-        workerFailure.get()?.let { throw it }
-        assertFalse(worker.isAlive)
-        assertFalse(manager.isStarted("policy-gated"))
         assertEquals(1, gateway.startCalls)
+        assertTrue(gateway.destroyedIds.isEmpty())
+        assertEquals(1, gateway.entries.single().results.size)
     }
 
     @Test
@@ -664,7 +756,19 @@ class NativeAdLoadManagerTest {
             return if (results.isEmpty()) null else results.removeFirst()
         }
 
-        override fun peekAdResponseInfo(preloadId: String): ResponseInfo? = null
+        override fun peekAdResponseInfo(preloadId: String): ResponseInfo? {
+            val head = entries
+                .firstOrNull { it.preloadId == preloadId }
+                ?.results
+                ?.firstOrNull()
+                ?: return null
+            return when (head) {
+                is NativeAdLoadResult.NativeAdSuccess -> head.ad.getResponseInfo()
+                is NativeAdLoadResult.CustomNativeAdSuccess -> head.ad.getResponseInfo()
+                is NativeAdLoadResult.BannerAdSuccess -> head.ad.getResponseInfo()
+                else -> null
+            }
+        }
 
         override fun destroy(preloadId: String): Boolean {
             if (throwOnDestroy) error("Synthetic SDK destroy failure")
