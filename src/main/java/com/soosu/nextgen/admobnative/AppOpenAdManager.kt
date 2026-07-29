@@ -56,22 +56,41 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     private var preloadGeneration: Long = 0
     private var preloadStartedAtElapsedMs: Long = 0
     private val preloadedAtByResponseId: MutableMap<String, Long> = mutableMapOf()
-    private val consumedBeforeCallbackResponseIds: MutableSet<String> = mutableSetOf()
+    private val consumedBeforeCallbackResponseIds: MutableSet<String> = LinkedHashSet()
     private var pendingShow: PendingShow? = null
 
+    /**
+     * Adds a runtime targeting keyword. Adding one that is already present is a
+     * no-op, because a duplicate does not change targeting but would otherwise
+     * restart the preload buffer and cost a fresh ad request.
+     */
     fun addKeyword(keyword: String) {
-        synchronized(keywordLock) {
-            runtimeKeywords.add(keyword)
+        val added = synchronized(keywordLock) {
+            if (runtimeKeywords.contains(keyword)) {
+                false
+            } else {
+                runtimeKeywords.add(keyword)
+                true
+            }
         }
-        restartPreloaderAfterTargetingChange()
+        if (added) {
+            restartPreloaderAfterTargetingChange()
+        }
     }
 
+    /**
+     * Adds runtime targeting keywords, skipping ones already present.
+     */
     fun addKeywords(keywords: List<String>) {
         if (keywords.isEmpty()) return
-        synchronized(keywordLock) {
-            runtimeKeywords.addAll(keywords)
+        val added = synchronized(keywordLock) {
+            val fresh = keywords.filterNot(runtimeKeywords::contains).distinct()
+            runtimeKeywords.addAll(fresh)
+            fresh.isNotEmpty()
         }
-        restartPreloaderAfterTargetingChange()
+        if (added) {
+            restartPreloaderAfterTargetingChange()
+        }
     }
 
     fun removeKeyword(keyword: String) {
@@ -110,7 +129,6 @@ class AppOpenAdManager(private val config: AdmobConfig) {
      */
     fun getNumPreloadedAds(): Int {
         if (!config.useAppOpenAdPreloader || !MobileAds.isInitialized) return 0
-        discardExpiredPreloadedAds()
         return synchronized(preloaderLock) {
             AppOpenAdPreloader.getNumAdsAvailable(preloadId)
         }
@@ -377,7 +395,6 @@ class AppOpenAdManager(private val config: AdmobConfig) {
             AppOpenAdPreloader.getNumAdsAvailable(preloadId)
         }
         while (adsRemaining-- > 0) {
-            var restartForUntrackedExpiration = false
             val adToShow = synchronized(preloaderLock) {
                 val ad = AppOpenAdPreloader.pollAd(preloadId) ?: return@synchronized null
                 val responseId = ad.getResponseInfo().responseId
@@ -391,129 +408,130 @@ class AppOpenAdManager(private val config: AdmobConfig) {
                     // The SDK can make an ad pollable immediately before its
                     // callback records the response ID. Ignore that late
                     // callback after this ad has already been consumed.
-                    consumedBeforeCallbackResponseIds.add(responseId)
+                    forgetPendingResponseId(responseId)
                 }
 
-                val effectiveLoadedAt = preloadedAt ?: preloadStartedAtElapsedMs
-                if (effectiveLoadedAt > 0 && !isExpired(effectiveLoadedAt)) {
+                // An unknown load time is not treated as expired. The preloader
+                // start time is only a lower bound, so using it here discarded
+                // ads that had just been refilled and forced a full restart,
+                // which cost an extra ad request per expiration.
+                if (!isExpired(preloadedAt)) {
                     return@synchronized ad
                 }
 
-                // A tracked ad can be discarded independently. For an
-                // untracked ad (including a null response ID), the preloader
-                // start time is a conservative lower bound. Restart the whole
-                // buffer once that bound expires so a fresh refill is never
-                // mistaken for an old ad.
-                restartForUntrackedExpiration = preloadedAt == null
-                Log.d(
-                    TAG,
-                    if (restartForUntrackedExpiration) {
-                        "Discarding untracked ad after preload generation expired"
-                    } else {
-                        "Discarding expired preloaded ad"
-                    },
-                )
+                // Only the expired ad is dropped. The SDK refills one ad per
+                // consumed ad, so the buffer recovers without a restart.
+                Log.d(TAG, "Discarding expired preloaded ad")
                 ad.destroy()
                 null
             }
 
             if (adToShow != null) return adToShow
-            if (restartForUntrackedExpiration) {
-                restartPreloaderAfterExpiration()
-                return null
-            }
         }
         return null
     }
 
+    /**
+     * Reports whether the next queued ad is usable.
+     *
+     * This is a pure query: it never polls, destroys, or restarts the buffer.
+     * Use [pruneExpiredPreloadedAds] to drop stale inventory.
+     */
     private fun hasValidPreloadedAd(): Boolean {
         if (!config.useAppOpenAdPreloader || !MobileAds.isInitialized) return false
 
-        var adsRemaining = synchronized(preloaderLock) {
-            AppOpenAdPreloader.getNumAdsAvailable(preloadId)
+        return synchronized(preloaderLock) {
+            if (!AppOpenAdPreloader.isAdAvailable(preloadId)) return@synchronized false
+
+            val preloadedAt = AppOpenAdPreloader.peekAdResponseInfo(preloadId)
+                ?.responseId
+                ?.let(preloadedAtByResponseId::get)
+            !isExpired(preloadedAt)
         }
-        while (adsRemaining-- > 0) {
-            val state = synchronized(preloaderLock) {
-                if (!AppOpenAdPreloader.isAdAvailable(preloadId)) {
-                    return@synchronized PreloadedAdState.UNAVAILABLE
-                }
+    }
 
-                val responseInfo = AppOpenAdPreloader.peekAdResponseInfo(preloadId)
-                val preloadedAt = responseInfo?.responseId?.let(preloadedAtByResponseId::get)
-                val effectiveLoadedAt = preloadedAt ?: preloadStartedAtElapsedMs
-                if (effectiveLoadedAt > 0 && !isExpired(effectiveLoadedAt)) {
-                    return@synchronized PreloadedAdState.AVAILABLE
-                }
+    /**
+     * Drops queued app open ads older than `foregroundAdExpirationMs`.
+     *
+     * Expiration cleanup is never performed by the query APIs, so call this
+     * explicitly when stale inventory should be dropped without showing an ad.
+     * The SDK refills one ad per dropped ad.
+     *
+     * @return the number of ads that were destroyed
+     */
+    fun pruneExpiredPreloadedAds(): Int {
+        if (!config.useAppOpenAdPreloader || !MobileAds.isInitialized) return 0
 
-                if (preloadedAt == null) {
-                    return@synchronized PreloadedAdState.RESTART
-                }
+        var destroyed = 0
+        synchronized(preloaderLock) {
+            var adsRemaining = AppOpenAdPreloader.getNumAdsAvailable(preloadId)
+            while (adsRemaining-- > 0) {
+                val preloadedAt = AppOpenAdPreloader.peekAdResponseInfo(preloadId)
+                    ?.responseId
+                    ?.let(preloadedAtByResponseId::get)
+                if (!isExpired(preloadedAt)) break
 
-                val expiredAd = AppOpenAdPreloader.pollAd(preloadId)
-                    ?: return@synchronized PreloadedAdState.UNAVAILABLE
-                val expiredResponseId = expiredAd.getResponseInfo().responseId
-                if (expiredResponseId != null) {
-                    val removed = preloadedAtByResponseId.remove(expiredResponseId)
-                    if (removed == null) {
-                        consumedBeforeCallbackResponseIds.add(expiredResponseId)
+                val expiredAd = AppOpenAdPreloader.pollAd(preloadId) ?: break
+                expiredAd.getResponseInfo().responseId?.let { responseId ->
+                    if (preloadedAtByResponseId.remove(responseId) == null) {
+                        forgetPendingResponseId(responseId)
                     }
                 }
                 Log.d(TAG, "Discarding expired preloaded ad")
                 expiredAd.destroy()
-                PreloadedAdState.RETRY
-            }
-
-            when (state) {
-                PreloadedAdState.AVAILABLE -> return true
-                PreloadedAdState.UNAVAILABLE -> return false
-                PreloadedAdState.RETRY -> Unit
-                PreloadedAdState.RESTART -> {
-                    restartPreloaderAfterExpiration()
-                    return false
-                }
+                destroyed++
             }
         }
-        return false
+        return destroyed
     }
 
-    private fun discardExpiredPreloadedAds() {
-        hasValidPreloadedAd()
-    }
-
-    private fun isExpired(loadedAt: Long): Boolean {
+    /**
+     * One-shot ads always have a known load time, so an unset value here means
+     * the ad is stale rather than "age unknown".
+     */
+    private fun isOneShotExpired(loadedAt: Long): Boolean {
         val elapsed = SystemClock.elapsedRealtime() - loadedAt
         return elapsed > config.foregroundAdExpirationMs
+    }
+
+    /**
+     * A `null` [loadedAt] means the load time is unknown, which is never
+     * treated as expired.
+     */
+    private fun isExpired(loadedAt: Long?): Boolean {
+        if (loadedAt == null || loadedAt <= 0L) return false
+        val elapsed = SystemClock.elapsedRealtime() - loadedAt
+        return elapsed > config.foregroundAdExpirationMs
+    }
+
+    // Must be called while holding preloaderLock. A preload callback that never
+    // arrives would otherwise retain its response ID for the process lifetime.
+    private fun forgetPendingResponseId(responseId: String) {
+        consumedBeforeCallbackResponseIds.add(responseId)
+        while (consumedBeforeCallbackResponseIds.size > MAX_PENDING_RESPONSE_IDS) {
+            val oldest = consumedBeforeCallbackResponseIds.iterator()
+            oldest.next()
+            oldest.remove()
+        }
     }
 
     private fun restartPreloaderAfterTargetingChange() {
         if (!config.useAppOpenAdPreloader) return
 
+        val keywords = getKeywords()
         val wasActive = synchronized(preloaderLock) {
-            if (activePreloadKeywords == null) {
-                false
-            } else {
-                destroyPreloaderLocked()
-                true
+            when {
+                activePreloadKeywords == null -> false
+                // Restarting costs the whole buffer plus a fresh request, so
+                // only do it when the effective targeting actually changed.
+                activePreloadKeywords == keywords -> return
+                else -> {
+                    destroyPreloaderLocked()
+                    true
+                }
             }
         }
         if (!wasActive) return
-
-        if (MobileAds.isInitialized &&
-            config.foregroundAdUnitId != null &&
-            !config.shouldSuppressAds()
-        ) {
-            if (!ensurePreloaderStarted()) {
-                completePendingShow()
-            }
-        } else {
-            completePendingShow()
-        }
-    }
-
-    private fun restartPreloaderAfterExpiration() {
-        synchronized(preloaderLock) {
-            destroyPreloaderLocked()
-        }
 
         if (MobileAds.isInitialized &&
             config.foregroundAdUnitId != null &&
@@ -622,7 +640,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
 
     private fun getValidOneShotAd(): AppOpenAd? {
         val ad = appOpenAd ?: return null
-        if (isExpired(adLoadedTime)) {
+        if (isOneShotExpired(adLoadedTime)) {
             Log.d(TAG, "One-shot ad expired")
             ad.destroy()
             appOpenAd = null
@@ -774,16 +792,10 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         val onComplete: () -> Unit,
     )
 
-    private enum class PreloadedAdState {
-        AVAILABLE,
-        UNAVAILABLE,
-        RETRY,
-        RESTART,
-    }
-
     companion object {
         private const val TAG = "AppOpenAdManager"
         private const val PRELOAD_ID_PREFIX = "nextgen-admob-app-open-"
+        private const val MAX_PENDING_RESPONSE_IDS = 64
         private val nextManagerId = AtomicLong()
 
         private fun createPreloadId(config: AdmobConfig, managerId: Long): String {

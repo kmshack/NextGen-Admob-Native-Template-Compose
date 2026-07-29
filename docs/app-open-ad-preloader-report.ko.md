@@ -238,3 +238,32 @@ Google은 App Open Preloader 적용에 따른 수익 또는 노출률 상승 수
 - [App Open 광고 가이드](https://developers.google.com/admob/android/next-gen/app-open)
 - [백그라운드 콜백 처리](https://developers.google.com/admob/android/next-gen/migration/handle-callbacks)
 - [App Open 영속 캐시 API](https://developers.google.com/admob/android/next-gen/reference/com/google/android/libraries/ads/mobile/sdk/appopen/AppOpenAdRequest.Builder)
+
+## 1.7.5 변경 사항 — 요청 수 과다 수정
+
+네이티브/전면 매니저에 적용한 수정을 `AppOpenAdManager` 에도 반영했습니다.
+네 가지 모두 배포 당시에는 앱에서 활성 호출부가 없거나(2, 3) 장시간 실행에서만
+드러나는(1) 잠재 경로였습니다.
+
+| 항목 | 이전 | 1.7.5 |
+|---|---|---|
+| 만료 판정 fallback | load 시각을 모르면 preloader 시작 시각으로 대체 → 만료 처리 후 **버퍼 전체 재시작** | age unknown 으로 보고 만료로 처리하지 않음. 만료된 광고만 폐기 |
+| `isAdAvailable()` / `getNumPreloadedAds()` | 내부에서 poll·destroy·restart 발생 | 부작용 없는 순수 조회 |
+| keyword 변경 | `addKeyword` 등이 호출될 때마다 무조건 버퍼 destroy + 재시작 | 실제 타게팅이 바뀐 경우에만 재시작. 이미 있는 keyword 추가는 no-op |
+| `consumedBeforeCallbackResponseIds` | 무제한 증가 | 상한 64 LRU |
+
+### 추가된 API
+
+- `pruneExpiredPreloadedAds()` — 만료된 app open 광고를 명시적으로 정리합니다.
+  조회 API 가 더 이상 자동 정리하지 않으므로 필요한 시점에 직접 호출합니다.
+
+### 참고
+
+`appOpenAdPreloadBufferSize` 기본값은 `1` 입니다. 배너/전면과 달리 SDK 기본값
+(2)에 걸리지 않으므로 별도 조정이 필요 없습니다. `foregroundAdExpirationMs`
+기본값 4시간은 AdMob 의 app open 광고 만료 시간과 일치합니다.
+
+`AppOpenAdManager` 는 `Handler` 를 필드에서 생성하고 SDK 정적 API 를 직접
+호출하므로 다른 매니저와 달리 JVM 단위 테스트 seam 이 없습니다. 이 변경은
+실기기(Pixel 9)에서 splash app open → 네이티브 → 종료 배너 흐름으로
+검증했습니다.
