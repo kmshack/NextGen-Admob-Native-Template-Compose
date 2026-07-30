@@ -41,8 +41,7 @@
                 android:paddingBottom="2dp"
                 android:text="AD"
                 android:textColor="#666"
-                android:textSize="9sp"
-                android:textStyle="bold" />
+                android:textSize="9sp" />
 
             <FrameLayout
                 android:id="@+id/icon_container"
@@ -60,8 +59,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:contentDescription="@null"
-                    android:scaleType="centerCrop"
-                    tools:src="@drawable/round_chevron_right_24" />
+                    android:scaleType="centerCrop" />
 
             </FrameLayout>
 
@@ -75,7 +73,6 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textSize="14sp"
-                android:textStyle="bold"
                 tools:text="primary" />
 
             <TextView
@@ -99,7 +96,6 @@
                 android:includeFontPadding="true"
                 android:maxLines="1"
                 android:textSize="13sp"
-                android:textStyle="bold"
                 tools:text="download" />
 
             <ImageView
