@@ -177,7 +177,11 @@ internal fun NativeAdMediaContent(
     scaleType: ImageView.ScaleType? = null,
 ) {
     when {
-        state.mediaContent != null -> NativeAdMediaView(modifier = modifier, scaleType = scaleType)
+        state.mediaContent != null -> NativeAdMediaView(
+            modifier = modifier,
+            scaleType = scaleType,
+            mediaContent = state.mediaContent,
+        )
         state.fallbackImage != null -> Image(
             bitmap = state.fallbackImage,
             contentDescription = null,

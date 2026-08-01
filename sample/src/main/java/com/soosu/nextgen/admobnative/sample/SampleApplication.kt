@@ -32,6 +32,8 @@ class SampleApplication : Application() {
             .preloadOnBackground(true)
             .shouldSuppressAds { false /* isPremiumUser() 등 조건 */ }
             .debugLogging(true)
+            // 디버그 빌드에서 뜨는 네이티브 광고 validator 오버레이를 끕니다.
+            .nativeValidatorDisabled(true)
             .build()
 
         // 2. AppOpenAdManager 생성

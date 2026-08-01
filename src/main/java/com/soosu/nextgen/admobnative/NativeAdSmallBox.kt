@@ -6,9 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +23,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+
+/** Height of the thumbnail, matching the previous 64dp ImageView. */
+private val THUMBNAIL_HEIGHT = 64.dp
+
+/** Widest the thumbnail may get, matching the previous `maxWidth`. */
+private val THUMBNAIL_MAX_WIDTH = 120.dp
 
 /**
  * Compact horizontal template: headline, icon + advertiser line and a small thumbnail.
@@ -114,14 +119,22 @@ fun NativeAdSmallBox(
                     }
 
                     if (thumbnail != null) {
+                        // Width follows the image ratio, capped at 120dp, so a square creative is
+                        // shown whole instead of being cropped to a wide strip.
+                        val thumbnailWidth = if (thumbnail.height > 0) {
+                            (THUMBNAIL_HEIGHT * thumbnail.width / thumbnail.height)
+                                .coerceAtMost(THUMBNAIL_MAX_WIDTH)
+                        } else {
+                            THUMBNAIL_MAX_WIDTH
+                        }
+
                         Image(
                             bitmap = thumbnail,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .padding(top = 8.dp, end = 16.dp, bottom = 8.dp)
-                                .height(64.dp)
-                                .widthIn(max = 120.dp)
+                                .size(width = thumbnailWidth, height = THUMBNAIL_HEIGHT)
                                 .clip(RoundedCornerShape(6.dp)),
                         )
                     }

@@ -37,7 +37,13 @@ object AdmobInitializer {
 
             withContext(Dispatchers.IO) {
                 suspendCancellableCoroutine { cont ->
-                    val config = InitializationConfig.Builder(admobAppId).build()
+                    val config = InitializationConfig.Builder(admobAppId)
+                        .apply {
+                            if (admobConfig?.nativeValidatorDisabled == true) {
+                                setNativeValidatorDisabled()
+                            }
+                        }
+                        .build()
                     MobileAds.initialize(context.applicationContext, config) {
                         Log.d(TAG, "MobileAds initialized")
                         initialized = true

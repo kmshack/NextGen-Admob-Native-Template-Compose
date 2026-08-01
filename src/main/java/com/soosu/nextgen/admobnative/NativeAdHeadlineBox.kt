@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -17,16 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-
-/** Space reserved for the badge, the icon, the call to action and the chevron. */
-private val HEADLINE_RESERVED_WIDTH = 180.dp
 
 /** Minimum height of the clickable area, per the Material touch target guideline. */
 private val MIN_TOUCH_TARGET = 48.dp
@@ -58,9 +53,6 @@ fun NativeAdHeadlineBox(
             drawable = nativeAd.primaryImageDrawable().takeIf { showImage },
             uri = nativeAd.primaryImageUri().takeIf { showImage },
         )
-        val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-        val maxHeadlineWidth = (screenWidth - HEADLINE_RESERVED_WIDTH).coerceAtLeast(screenWidth / 3)
-
         NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
             // The whole slot is the call to action, not just the label: the row on its own is a
             // touch target well below the 48dp minimum. The content stays centered inside it.
@@ -90,10 +82,12 @@ fun NativeAdHeadlineBox(
                             modifier = Modifier.padding(start = 8.dp),
                         )
 
+                        // Only the headline gives way when it is too long: it takes the space the
+                        // badge, icon, call to action and chevron leave over, and ellipsizes there.
                         NativeAdHeadlineView(
                             modifier = Modifier
+                                .weight(1f, fill = false)
                                 .padding(start = 8.dp, end = 4.dp)
-                                .widthIn(max = maxHeadlineWidth)
                         ) {
                             Text(
                                 text = nativeAd.headline.orEmpty(),

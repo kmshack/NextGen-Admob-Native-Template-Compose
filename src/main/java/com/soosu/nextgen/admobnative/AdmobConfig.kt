@@ -18,6 +18,7 @@ class AdmobConfig private constructor(
     val tagForChildDirectedTreatment: Boolean?,
     val tagForUnderAgeOfConsent: Boolean?,
     val keywords: List<String>,
+    val nativeValidatorDisabled: Boolean,
 ) {
     class Builder(private val admobAppId: String) {
         private var splashAdUnitId: String? = null
@@ -36,6 +37,7 @@ class AdmobConfig private constructor(
         private var tagForChildDirectedTreatment: Boolean? = null
         private var tagForUnderAgeOfConsent: Boolean? = null
         private val keywords: MutableList<String> = mutableListOf()
+        private var nativeValidatorDisabled: Boolean = false
 
         fun splashAdUnitId(id: String?) = apply { this.splashAdUnitId = id }
         fun foregroundAdUnitId(id: String?) = apply { this.foregroundAdUnitId = id }
@@ -64,6 +66,14 @@ class AdmobConfig private constructor(
         fun addKeyword(keyword: String) = apply { this.keywords.add(keyword) }
         fun addKeywords(keywords: List<String>) = apply { this.keywords.addAll(keywords) }
 
+        /**
+         * Disables the on-device native ad validator, the overlay the SDK shows on debug
+         * builds to report native ad implementation issues.
+         */
+        fun nativeValidatorDisabled(disabled: Boolean) = apply {
+            this.nativeValidatorDisabled = disabled
+        }
+
         fun build() = AdmobConfig(
             admobAppId = admobAppId,
             splashAdUnitId = splashAdUnitId,
@@ -82,6 +92,7 @@ class AdmobConfig private constructor(
             tagForChildDirectedTreatment = tagForChildDirectedTreatment,
             tagForUnderAgeOfConsent = tagForUnderAgeOfConsent,
             keywords = keywords.toList(),
+            nativeValidatorDisabled = nativeValidatorDisabled,
         )
     }
 

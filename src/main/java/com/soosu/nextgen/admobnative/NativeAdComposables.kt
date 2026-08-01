@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.libraries.ads.mobile.sdk.common.AdChoicesView
+import com.google.android.libraries.ads.mobile.sdk.nativead.MediaContent
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView as SdkNativeAdView
@@ -257,15 +258,22 @@ fun NativeAdChoicesView(modifier: Modifier = Modifier) {
  *
  * @param modifier The modifier applied to the asset.
  * @param scaleType The scale type applied to image content.
+ * @param mediaContent The media to render. Registration alone is not enough when the media content
+ *   carries a main image that was filled in from another asset, so pass it explicitly.
  */
 @Composable
-fun NativeAdMediaView(modifier: Modifier = Modifier, scaleType: ImageView.ScaleType? = null) {
+fun NativeAdMediaView(
+    modifier: Modifier = Modifier,
+    scaleType: ImageView.ScaleType? = null,
+    mediaContent: MediaContent? = null,
+) {
     val registerMediaView = LocalMediaViewRegister.current
     AndroidView(
         factory = { context -> MediaView(context) },
         modifier = modifier,
         update = { view ->
             registerMediaView(view)
+            mediaContent?.let { view.mediaContent = it }
             scaleType?.let { view.imageScaleType = it }
         },
     )

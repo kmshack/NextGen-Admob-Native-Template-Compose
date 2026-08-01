@@ -26,10 +26,6 @@
             android:exported="false"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
 
-        <!-- Native Ad Validator 비활성화 -->
-        <meta-data
-            android:name="com.google.android.gms.ads.flag.NATIVE_AD_DEBUGGER_ENABLED"
-            android:value="false" />
     </application>
 
 </manifest>
