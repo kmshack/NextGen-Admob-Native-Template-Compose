@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.libraries.ads.mobile.sdk.common.AdChoicesView
@@ -103,6 +106,7 @@ fun NativeAdView(
                 CompositionLocalProvider(
                     LocalNativeAdView provides adView,
                     LocalMediaViewRegister provides registerMediaView,
+                    LocalTextStyle provides textStyleWithoutFontPadding(),
                 ) {
                     content()
                 }
@@ -321,9 +325,32 @@ private fun NativeAdAssetView(
         modifier = modifier,
         update = { view ->
             register(nativeAdView, view)
-            view.setContent(content)
+            view.setContent {
+                CompositionLocalProvider(
+                    LocalTextStyle provides textStyleWithoutFontPadding(),
+                    content = content,
+                )
+            }
         },
     )
+}
+
+/**
+ * The ambient text style with font padding turned off.
+ *
+ * Compose already defaults to `includeFontPadding = false`, but a host app can turn it back on in
+ * its own typography, and the templates would inherit it and lose their vertical rhythm.
+ */
+@Composable
+private fun textStyleWithoutFontPadding(): TextStyle {
+    val style = LocalTextStyle.current
+    return remember(style) {
+        if (style.platformStyle?.paragraphStyle?.includeFontPadding == false) {
+            style
+        } else {
+            style.copy(platformStyle = PlatformTextStyle(includeFontPadding = false))
+        }
+    }
 }
 
 /**

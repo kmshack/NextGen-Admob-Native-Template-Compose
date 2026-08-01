@@ -76,7 +76,7 @@ fun NativeAdMediumBox(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, top = 3.dp, end = 16.dp),
+                            .padding(start = 16.dp, top = 2.dp, end = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         NativeAdIconAsset(
@@ -88,7 +88,7 @@ fun NativeAdMediumBox(
                         NativeAdBadge(
                             textColor = textColor,
                             modifier = Modifier
-                                .padding(start = 4.dp)
+                                .padding(start = 4.dp, end = 4.dp)
                                 .alpha(0.8f),
                         )
 
@@ -105,7 +105,7 @@ fun NativeAdMediumBox(
                     }
 
                     Row(
-                        modifier = Modifier.padding(start = 16.dp, top = 8.dp),
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -129,7 +129,7 @@ fun NativeAdMediumBox(
                         NativeAdBodyView(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 16.dp, top = 14.dp, end = 16.dp)
+                                .padding(start = 16.dp, top = 8.dp, end = 16.dp)
                         ) {
                             Text(
                                 text = body,

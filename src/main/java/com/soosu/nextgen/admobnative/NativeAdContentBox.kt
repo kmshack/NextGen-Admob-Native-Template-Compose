@@ -110,7 +110,6 @@ fun NativeAdContentBox(
                             text = "Sponsored",
                             color = sponsoredColor,
                             fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 1.dp),
                         )
                     }
                 }

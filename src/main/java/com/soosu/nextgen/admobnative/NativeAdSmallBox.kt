@@ -85,7 +85,7 @@ fun NativeAdSmallBox(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 18.dp, top = 4.dp, end = 4.dp),
+                                .padding(start = 18.dp, end = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             NativeAdIconAsset(

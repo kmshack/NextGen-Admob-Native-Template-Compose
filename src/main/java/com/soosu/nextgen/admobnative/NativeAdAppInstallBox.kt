@@ -125,7 +125,7 @@ fun NativeAdAppInstallBox(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 4.dp),
+                                .padding(top = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             NativeAdBadge(textColor = textColor)
@@ -143,7 +143,7 @@ fun NativeAdAppInstallBox(
                         }
 
                         Row(
-                            modifier = Modifier.padding(top = 6.dp),
+                            modifier = Modifier.padding(top = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (starRating != null) {

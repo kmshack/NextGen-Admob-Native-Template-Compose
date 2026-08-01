@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,7 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -130,7 +130,7 @@ private fun MediaLayout(
             NativeAdHeadlineView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .padding(top = 2.dp)
             ) {
                 Text(
                     text = nativeAd.headlineText(),
@@ -140,7 +140,8 @@ private fun MediaLayout(
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
+                    // Copy so the ambient style, font padding included, is kept.
+                    style = LocalTextStyle.current.copy(
                         shadow = Shadow(
                             color = Color(0x80000000),
                             offset = Offset(0f, 1f),
@@ -158,11 +159,11 @@ private fun MediaLayout(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp)
+                    .padding(top = 2.dp)
                     .alpha(0.9f),
             )
 
-            NativeAdCallToActionView(modifier = Modifier.padding(top = 12.dp)) {
+            NativeAdCallToActionView(modifier = Modifier.padding(top = 8.dp)) {
                 CallToActionButton(
                     text = nativeAd.callToAction.orEmpty(),
                     containerColor = ctaButtonColor,

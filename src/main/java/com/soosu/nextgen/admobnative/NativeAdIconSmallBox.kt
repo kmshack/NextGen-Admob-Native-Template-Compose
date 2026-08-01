@@ -85,7 +85,6 @@ fun NativeAdIconSmallBox(
                         NativeAdHeadlineView(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 2.dp)
                         ) {
                             Text(
                                 text = nativeAd.headline.orEmpty(),
