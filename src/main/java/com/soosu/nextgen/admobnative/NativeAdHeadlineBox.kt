@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -26,6 +27,9 @@ import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 
 /** Space reserved for the badge, the icon, the call to action and the chevron. */
 private val HEADLINE_RESERVED_WIDTH = 180.dp
+
+/** Minimum height of the clickable area, per the Material touch target guideline. */
+private val MIN_TOUCH_TARGET = 48.dp
 
 /**
  * Ultra compact single line template for headers, toolbars and other tight spaces.
@@ -58,9 +62,15 @@ fun NativeAdHeadlineBox(
         val maxHeadlineWidth = (screenWidth - HEADLINE_RESERVED_WIDTH).coerceAtLeast(screenWidth / 3)
 
         NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
-            // The ad only takes the width it needs, centered in whatever space it is given.
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                NativeAdCallToActionView {
+            // The whole slot is the call to action, not just the label: the row on its own is a
+            // touch target well below the 48dp minimum. The content stays centered inside it.
+            NativeAdCallToActionView(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = MIN_TOUCH_TARGET),
+                    contentAlignment = Alignment.Center
+                ) {
                     Row(
                         modifier = Modifier
                             .padding(2.dp)
@@ -109,6 +119,7 @@ fun NativeAdHeadlineBox(
                             text = nativeAd.callToAction.orEmpty(),
                             color = textColor,
                             fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
