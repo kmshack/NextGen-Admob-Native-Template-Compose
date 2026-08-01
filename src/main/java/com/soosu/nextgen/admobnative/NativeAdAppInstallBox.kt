@@ -1,20 +1,28 @@
 package com.soosu.nextgen.admobnative
 
-import android.annotation.SuppressLint
-import android.content.res.ColorStateList
-import android.graphics.drawable.GradientDrawable
-import android.util.Log
-import android.view.View
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.viewinterop.AndroidViewBinding
-import androidx.core.graphics.ColorUtils
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.soosu.nextgen.admobnative.databinding.GntAdAppInstallTemplateViewBinding
 
 /**
  * App install ad template optimized for app promotion and downloads.
@@ -39,14 +47,13 @@ import com.soosu.nextgen.admobnative.databinding.GntAdAppInstallTemplateViewBind
  * - Prominent install button drives action
  * - Price transparency reduces friction
  *
- * @param nativeAd The native ad to display
+ * @param nativeAd The native ad to display. Nothing is rendered while it is `null`.
  * @param modifier Compose modifier
  * @param backgroundColor Card background color
  * @param textColor Primary text color
  * @param ctaButtonColor Install button background color
  * @param ctaTextColor Install button text color
  */
-@SuppressLint("SetTextI18n")
 @Composable
 fun NativeAdAppInstallBox(
     nativeAd: NativeAd?,
@@ -56,133 +63,159 @@ fun NativeAdAppInstallBox(
     ctaButtonColor: Color = Color(0xFF1976D2),
     ctaTextColor: Color = Color.White
 ) {
-
     Box(modifier = modifier) {
+        if (nativeAd == null) return@Box
 
-        if (nativeAd != null) {
-            val bgColor = backgroundColor.toArgb()
-            val txtColor = textColor.toArgb()
-            val ctaBgColor = ctaButtonColor.toArgb()
-            val ctaTxtColor = ctaTextColor.toArgb()
+        val iconImage = rememberNativeAdImage(nativeAd.iconImageDrawable(), nativeAd.iconImageUri())
+        val media = rememberNativeAdMediaState(nativeAd)
+        val secondaryColor = textColor.blendWith(backgroundColor, 0.4f)
+        val descriptionColor = textColor.blendWith(backgroundColor, 0.3f)
+        val starRating = nativeAd.starRating
 
-            AndroidViewBinding(
-                factory = GntAdAppInstallTemplateViewBinding::inflate,
+        NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor)
             ) {
-
-                val adView = nativeAdView.also { adView ->
-                    adView.callToActionView = ctaContainer
-                    adView.headlineView = primary
-                    adView.iconView = icon
-                    adView.bodyView = description
-                    adView.starRatingView = ratingBar
-                    adView.priceView = price
-                }
-
-                // Set background color
-                background.setBackgroundColor(bgColor)
-
-                // Set text colors
-                primary.setTextColor(txtColor)
-                secondary.setTextColor(ColorUtils.blendARGB(txtColor, bgColor, 0.4f))
-                description.setTextColor(ColorUtils.blendARGB(txtColor, bgColor, 0.3f))
-                ratingText.setTextColor(ColorUtils.blendARGB(txtColor, bgColor, 0.4f))
-
-                // Configure CTA button
-                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
-                cta.setTextColor(ctaTxtColor)
-
-                // Set AD badge colors (harmonize with other text)
-                ad.setTextColor(txtColor)
-                ad.background = GradientDrawable().apply {
-                    setColor(ColorUtils.setAlphaComponent(txtColor, 38))
-                    cornerRadius = 6f * ad.context.resources.displayMetrics.density
-                }
-
-                // Set headline (app name)
-                nativeAd.headline?.let { headline ->
-                    primary.text = headline
-                }
-
-                // Set advertiser/store (developer name)
-                secondary.text = when {
-                    !nativeAd.body.isNullOrEmpty() -> nativeAd.body
-                    !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
-                    !nativeAd.store.isNullOrEmpty() -> nativeAd.store
-                    !nativeAd.callToAction.isNullOrEmpty() -> nativeAd.callToAction
-                    else -> "ˑˑˑ"
-                }
-
-                // Set call to action
-                nativeAd.callToAction?.let { callToAction ->
-                    cta.text = callToAction
-                } ?: run {
-                    cta.text = "Install"
-                }
-
-                // Set icon
-                icon.setNativeAdImage(
-                    drawable = nativeAd.iconImageDrawable(),
-                    uri = nativeAd.iconImageUri(),
-                    container = iconContainer
-                )
-
-                // Set star rating
-                nativeAd.starRating?.let { rating ->
-                    ratingBar.rating = rating.toFloat()
-                    ratingBar.visibility = View.VISIBLE
-                    ratingText.text = String.format("%.1f", rating)
-                    ratingText.visibility = View.VISIBLE
-                } ?: run {
-                    ratingBar.visibility = View.GONE
-                    ratingText.visibility = View.GONE
-                }
-
-                // Set price
-                nativeAd.price?.let { priceValue ->
-                    price.text = priceValue
-                    price.visibility = View.VISIBLE
-                    separator.visibility = if (ratingBar.visibility == View.VISIBLE) View.VISIBLE else View.GONE
-                } ?: run {
-                    // Show "Free" if no price specified
-                    price.text = "Free"
-                    price.visibility = View.VISIBLE
-                    separator.visibility = if (ratingBar.visibility == View.VISIBLE) View.VISIBLE else View.GONE
-                }
-
-                // Set body description
-                nativeAd.body?.let { body ->
-                    description.text = body
-                    description.visibility = View.VISIBLE
-                } ?: run {
-                    description.visibility = View.GONE
-                }
-
-                // Set media content (screenshots)
-                val mediaContent = adMedia.setNativeAdMediaOrImage(
-                    nativeAd = nativeAd,
-                    fallbackImageView = adImage,
-                    container = adImageContainer
-                ) { mediaContent ->
-                    Log.d(
-                        "NativeAdAppInstallBox",
-                        "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
+                if (media.hasMedia) {
+                    NativeAdMediaContent(
+                        state = media,
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .let {
+                                if (media.mediaContent != null) {
+                                    it.aspectRatio(media.aspectRatio)
+                                } else {
+                                    it
+                                }
+                            },
                     )
-                    adMedia.post {
-                        val width = adMedia.width
-                        if (width > 0 && mediaContent.aspectRatio > 0) {
-                            val height = (width / mediaContent.aspectRatio).toInt()
-                            adMedia.layoutParams = adMedia.layoutParams.apply {
-                                this.height = height
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    NativeAdIconAsset(
+                        image = iconImage,
+                        size = 72.dp,
+                        shape = RoundedCornerShape(20.dp),
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = if (iconImage != null) 14.dp else 0.dp)
+                    ) {
+                        NativeAdHeadlineView(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = nativeAd.headline.orEmpty(),
+                                color = textColor,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            NativeAdBadge(textColor = textColor)
+
+                            Text(
+                                text = nativeAd.secondaryText(),
+                                color = secondaryColor,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 6.dp),
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.padding(top = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (starRating != null) {
+                                NativeAdStarRatingView {
+                                    NativeAdStarRating(rating = starRating)
+                                }
+
+                                Text(
+                                    text = String.format("%.1f", starRating),
+                                    color = secondaryColor,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(start = 4.dp),
+                                )
+
+                                Text(
+                                    text = "•",
+                                    color = Color(0xFF999999),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                )
                             }
+
+                            NativeAdPriceView {
+                                Text(
+                                    text = nativeAd.price ?: "Free",
+                                    color = Color(0xFF2E7D32),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
+
+                    NativeAdCallToActionView(modifier = Modifier.padding(start = 12.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(ctaButtonColor)
+                                .widthIn(min = 80.dp)
+                                .padding(horizontal = 18.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = nativeAd.callToAction ?: "Install",
+                                color = ctaTextColor,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                            )
                         }
                     }
                 }
 
-                adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
-
+                nativeAd.body?.let { body ->
+                    NativeAdBodyView(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = body,
+                            color = descriptionColor,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
-
         }
     }
-
 }

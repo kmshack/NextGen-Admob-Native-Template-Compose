@@ -1,6 +1,5 @@
 package com.soosu.nextgen.admobnative.sample
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,14 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -253,61 +249,6 @@ fun MainScreen() {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Sample Activity Buttons
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF2196F3).copy(alpha = 0.1f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "Sample Activities",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1565C0)
-                        )
-                        Text(
-                            "Test different integration patterns for NativeAd templates",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF1976D2)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // View Sample Button
-                        Button(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(context, ViewSampleActivity::class.java)
-                                )
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("View Sample (NativeAdTemplateView)")
-                        }
-
-                        // AndroidView + Compose Sample Button
-                        OutlinedButton(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(context, AndroidViewSampleActivity::class.java)
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("AndroidView + Compose Sample")
-                        }
-                    }
-                }
-            }
-
             // CTR Optimized Section Header
             item {
                 Card(
@@ -448,9 +389,21 @@ fun MainScreen() {
                     isLoading = headlineLoading,
                     error = headlineError
                 ) {
-                    NativeAdHeadlineBox(
-                        nativeAd = headlineAd
-                    )
+                    Column {
+                        NativeAdHeadlineBox(
+                            nativeAd = headlineAd,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Text only variant
+                        NativeAdHeadlineBox(
+                            nativeAd = headlineAd,
+                            modifier = Modifier.fillMaxWidth(),
+                            showImage = false
+                        )
+                    }
                 }
             }
 

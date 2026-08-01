@@ -1,22 +1,47 @@
 package com.soosu.nextgen.admobnative
 
-import android.annotation.SuppressLint
-import android.content.res.ColorStateList
-import android.graphics.LinearGradient
-import android.graphics.Shader
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.PaintDrawable
-import android.graphics.drawable.ShapeDrawable
-import android.graphics.drawable.shapes.RectShape
-import android.view.View
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.viewinterop.AndroidViewBinding
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.soosu.nextgen.admobnative.databinding.GntAdFullwidthMediaTemplateViewBinding
+
+/** Height of the media area, matching the previous 280dp media container. */
+private val FULL_WIDTH_MEDIA_HEIGHT = 280.dp
+
+/** Bottom-to-top scrim keeping the overlaid text readable on top of the media. */
+private val MEDIA_SCRIM = Brush.verticalGradient(
+    0.3f to Color.Transparent,
+    0.65f to Color(0x80000000),
+    1.0f to Color(0xCC000000),
+)
 
 /**
  * Full-width media-centric ad template optimized for high visual impact and CTR.
@@ -32,12 +57,11 @@ import com.soosu.nextgen.admobnative.databinding.GntAdFullwidthMediaTemplateView
  * - Full-screen interstitial-style native ads
  * - High-impact banner replacements
  *
- * @param nativeAd The native ad to display
+ * @param nativeAd The native ad to display. Nothing is rendered while it is `null`.
  * @param modifier Compose modifier
  * @param ctaButtonColor CTA button background color
  * @param ctaTextColor CTA button text color
  */
-@SuppressLint("SetTextI18n")
 @Composable
 fun NativeAdFullWidthMediaBox(
     nativeAd: NativeAd?,
@@ -45,122 +69,213 @@ fun NativeAdFullWidthMediaBox(
     ctaButtonColor: Color = Color.White,
     ctaTextColor: Color = Color(0xFF1976D2)
 ) {
-
     Box(modifier = modifier) {
+        if (nativeAd == null) return@Box
 
-        if (nativeAd != null) {
-            val ctaBgColor = ctaButtonColor.toArgb()
-            val ctaTxtColor = ctaTextColor.toArgb()
+        val media = rememberNativeAdMediaState(nativeAd)
 
-            AndroidViewBinding(
-                factory = GntAdFullwidthMediaTemplateViewBinding::inflate,
-            ) {
-
-                val adView = nativeAdView.also { adView ->
-                    adView.iconView = icon
-                    adView.bodyView = description
-                }
-
-                // Configure CTA button colors
-                ctaContainer.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
-                ctaContainerFallback.backgroundTintList = ColorStateList.valueOf(ctaBgColor)
-                cta.setTextColor(ctaTxtColor)
-                ctaFallback.setTextColor(ctaTxtColor)
-
-                // Set headline
-                val headlineText = when {
-                    !nativeAd.headline.isNullOrEmpty() -> nativeAd.headline
-                    !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
-                    !nativeAd.store.isNullOrEmpty() -> nativeAd.store
-                    else -> ""
-                }
-                primary.text = headlineText
-                primaryFallback.text = headlineText
-
-                // Set AD badge with semi-transparent background for overlay style
-                ad.setTextColor(ctaBgColor)
-                ad.background = GradientDrawable().apply {
-                    setColor(ctaTxtColor)
-                    cornerRadius = 6f * ad.context.resources.displayMetrics.density
-                }
-
-                // Set advertiser or store
-                secondary.text = when {
-                    !nativeAd.body.isNullOrEmpty() -> nativeAd.body
-                    !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
-                    !nativeAd.store.isNullOrEmpty() -> nativeAd.store
-                    !nativeAd.callToAction.isNullOrEmpty() -> nativeAd.callToAction
-                    else -> "ˑˑˑ"
-                }
-
-                // Set call to action
-                val callToActionText = nativeAd.callToAction ?: ""
-                cta.text = callToActionText
-                ctaFallback.text = callToActionText
-
-                // Set body description (for fallback)
-                nativeAd.body?.let { body ->
-                    description.text = body
-                    description.visibility = View.VISIBLE
-                } ?: run {
-                    description.text = ""
-                    description.visibility = View.GONE
-                }
-
-                // Set icon (for fallback)
-                icon.setNativeAdImage(
-                    drawable = nativeAd.iconImageDrawable(),
-                    uri = nativeAd.iconImageUri(),
-                    container = iconContainer
-                )
-
-                // Set media content with gradient overlay
-                val mediaContent = adMedia.setNativeAdMediaOrImage(
+        NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
+            if (media.hasMedia) {
+                MediaLayout(
                     nativeAd = nativeAd,
-                    fallbackImageView = adImage,
-                    container = adImageContainer
+                    media = media,
+                    ctaButtonColor = ctaButtonColor,
+                    ctaTextColor = ctaTextColor,
                 )
-                if (adImageContainer.visibility == View.VISIBLE) {
-                    adView.callToActionView = ctaContainer
-                    adView.headlineView = primary
-                    fallbackContainer.visibility = View.GONE
-
-                    // Apply gradient overlay
-                    applyGradientOverlay(gradientOverlay)
-                } else {
-                    adView.callToActionView = ctaContainerFallback
-                    adView.headlineView = primaryFallback
-                    fallbackContainer.visibility = View.VISIBLE
-                }
-
-                adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
-
+            } else {
+                FallbackLayout(
+                    nativeAd = nativeAd,
+                    ctaButtonColor = ctaButtonColor,
+                    ctaTextColor = ctaTextColor,
+                )
             }
-
         }
     }
-
 }
 
-/**
- * Apply a bottom-to-top gradient overlay for text readability
- */
-private fun applyGradientOverlay(view: View) {
-    val shapeDrawable = PaintDrawable()
-    shapeDrawable.shape = RectShape()
-    shapeDrawable.shaderFactory = object : ShapeDrawable.ShaderFactory() {
-        override fun resize(width: Int, height: Int): Shader {
-            return LinearGradient(
-                0f, height.toFloat(), 0f, height * 0.3f,
-                intArrayOf(
-                    android.graphics.Color.parseColor("#CC000000"),
-                    android.graphics.Color.parseColor("#80000000"),
-                    android.graphics.Color.TRANSPARENT
-                ),
-                floatArrayOf(0f, 0.5f, 1f),
-                Shader.TileMode.CLAMP
+@Composable
+private fun MediaLayout(
+    nativeAd: NativeAd,
+    media: NativeAdMediaState,
+    ctaButtonColor: Color,
+    ctaTextColor: Color,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(FULL_WIDTH_MEDIA_HEIGHT)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Black)
+    ) {
+        NativeAdMediaContent(
+            state = media,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MEDIA_SCRIM)
+        )
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            NativeAdBadge(textColor = ctaButtonColor, containerColor = ctaTextColor)
+
+            NativeAdHeadlineView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Text(
+                    text = nativeAd.headlineText(),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    lineHeight = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = Color(0x80000000),
+                            offset = Offset(0f, 1f),
+                            blurRadius = 3f,
+                        )
+                    ),
+                )
+            }
+
+            Text(
+                text = nativeAd.secondaryText(),
+                color = Color.White,
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+                    .alpha(0.9f),
+            )
+
+            NativeAdCallToActionView(modifier = Modifier.padding(top = 12.dp)) {
+                CallToActionButton(
+                    text = nativeAd.callToAction.orEmpty(),
+                    containerColor = ctaButtonColor,
+                    contentColor = ctaTextColor,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FallbackLayout(
+    nativeAd: NativeAd,
+    ctaButtonColor: Color,
+    ctaTextColor: Color,
+) {
+    val iconImage = rememberNativeAdImage(nativeAd.iconImageDrawable(), nativeAd.iconImageUri())
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF5F5F5))
+            .heightIn(min = 200.dp)
+            .padding(20.dp)
+    ) {
+        NativeAdIconAsset(
+            image = iconImage,
+            size = 72.dp,
+            shape = RoundedCornerShape(16.dp),
+        )
+
+        NativeAdBadge(
+            textColor = Color(0xFF555555),
+            containerColor = Color(0xFFE0E0E0),
+            modifier = Modifier.padding(top = 12.dp),
+        )
+
+        NativeAdHeadlineView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        ) {
+            Text(
+                text = nativeAd.headlineText(),
+                color = Color(0xFF111111),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        nativeAd.body?.let { body ->
+            NativeAdBodyView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Text(
+                    text = body,
+                    color = Color(0xFF666666),
+                    fontSize = 14.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        NativeAdCallToActionView(modifier = Modifier.padding(top = 16.dp)) {
+            CallToActionButton(
+                text = nativeAd.callToAction.orEmpty(),
+                containerColor = ctaButtonColor,
+                contentColor = ctaTextColor,
+                showChevron = true,
             )
         }
     }
-    view.background = shapeDrawable
+}
+
+@Composable
+private fun CallToActionButton(
+    text: String,
+    containerColor: Color,
+    contentColor: Color,
+    showChevron: Boolean = false,
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(containerColor)
+            .widthIn(min = 140.dp)
+            .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            color = contentColor,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        if (showChevron) {
+            Icon(
+                painter = painterResource(R.drawable.round_chevron_right_24),
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .size(20.dp),
+            )
+        }
+    }
 }

@@ -42,7 +42,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 - [API Reference](#api-reference)
 - [Advanced Usage](#advanced-usage)
 - [AdMob Initialization, UMP Consent & App Open Ads](#admob-initialization-ump-consent--app-open-ads)
-- [View-based Usage](#view-based-usage)
+- [Custom Layouts](#custom-layouts)
 - [Migration from Legacy SDK](#migration-from-legacy-sdk)
 - [Sample App](#sample-app)
 - [Dependencies](#dependencies)
@@ -83,7 +83,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.7.3")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.8.0")
 }
 ```
 
@@ -400,7 +400,8 @@ NativeAdMediumBox(
 
 **Features:**
 - Ultra-compact design
-- Headline only with small icon
+- Horizontally centered in the space it is given
+- Headline only with small icon, which can be turned off
 - Minimal visual footprint
 - Great for toolbars or between content sections
 
@@ -409,7 +410,18 @@ NativeAdHeadlineBox(
     nativeAd = nativeAd,
     modifier = Modifier.fillMaxWidth()
 )
+
+// Text only: the image is neither rendered nor downloaded
+NativeAdHeadlineBox(
+    nativeAd = nativeAd,
+    modifier = Modifier.fillMaxWidth(),
+    showImage = false
+)
 ```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `showImage` | `Boolean` | `true` | Show the ad image between the "AD" badge and the headline |
 
 ### 5. Large Template - `NativeAdLargeBox`
 
@@ -865,163 +877,96 @@ AdmobConfig.Builder(appId)
 
 ---
 
-## View-based Usage
+## Custom Layouts
 
-For projects that prefer traditional Android Views over Jetpack Compose, the library provides `NativeAdTemplateView` - a custom View that supports all 8 template types.
+Every template in this library is rendered with pure Compose - there are no XML layouts and no
+`AndroidView` inflation of template views. The building blocks follow the official Next-Gen Compose
+sample ([`NativeComposeFragment`](https://github.com/googleads/gma-next-gen-sdk-android-examples/blob/main/kotlin/NextGenExample/app/src/main/java/com/example/nextgenexample/native/NativeComposeFragment.kt)):
+wrap your layout in `NativeAdView` and declare each ad asset with its matching `NativeAd*View`
+composable so the SDK can register the asset and track impressions and clicks.
 
-### XML Layout Usage
-
-```xml
-<com.soosu.nextgen.admobnative.NativeAdTemplateView
-    android:id="@+id/native_ad_view"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:adTemplate="medium"
-    app:adBackgroundColor="#FFFFFF"
-    app:adTextColor="#222222"
-    app:adCtaButtonColor="#1976D2"
-    app:adCtaTextColor="#FFFFFF" />
-```
-
-### Available XML Attributes
-
-| Attribute | Format | Description |
-|-----------|--------|-------------|
-| `app:adTemplate` | enum | Template type: `small`, `medium`, `large`, `headline`, `iconSmall`, `content`, `fullWidthMedia`, `appInstall` |
-| `app:adBackgroundColor` | color | Background color of the ad |
-| `app:adTextColor` | color | Text color for ad content |
-| `app:adCtaButtonColor` | color | CTA button background color |
-| `app:adCtaTextColor` | color | CTA button text color |
-
-### Kotlin/Java Usage
+These composables are public API, so you can build a layout the eight built-in templates do not
+cover.
 
 ```kotlin
-import android.graphics.Color
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.soosu.nextgen.admobnative.AdTemplateType
-import com.soosu.nextgen.admobnative.NativeAdTemplateView
-import kotlinx.coroutines.launch
+import com.soosu.nextgen.admobnative.NativeAdAttribution
+import com.soosu.nextgen.admobnative.NativeAdBodyView
+import com.soosu.nextgen.admobnative.NativeAdCallToActionView
+import com.soosu.nextgen.admobnative.NativeAdHeadlineView
+import com.soosu.nextgen.admobnative.NativeAdMediaView
+import com.soosu.nextgen.admobnative.NativeAdView
 
-class MyActivity : ComponentActivity() {
+@Composable
+fun MyNativeAd(nativeAd: NativeAd) {
+    NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
 
-    private lateinit var adView: NativeAdTemplateView
-    private val nativeAdManager
-        get() = (application as MyApplication).nativeAdLoadManager
-    private var currentNativeAd: NativeAd? = null
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Every native ad needs a visible "Ad" attribution.
+                NativeAdAttribution()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+                NativeAdHeadlineView(modifier = Modifier.padding(start = 8.dp)) {
+                    Text(text = nativeAd.headline.orEmpty(), fontWeight = FontWeight.Bold)
+                }
+            }
 
-        adView = findViewById(R.id.native_ad_view)
+            // The MediaView must be at least 120x120dp, so size it with the reported aspect ratio.
+            val aspectRatio = nativeAd.mediaContent?.aspectRatio?.takeIf { it > 0f } ?: (16f / 9f)
+            NativeAdMediaView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(aspectRatio)
+                    .heightIn(min = 120.dp)
+            )
 
-        // Optionally change template programmatically
-        adView.setTemplate(AdTemplateType.LARGE)
+            nativeAd.body?.let { body ->
+                NativeAdBodyView(modifier = Modifier.padding(top = 8.dp)) { Text(text = body) }
+            }
 
-        // Optionally customize colors programmatically
-        adView.setAdBackgroundColor(Color.WHITE)
-        adView.setAdTextColor(Color.BLACK)
-        adView.setCtaButtonColor(Color.parseColor("#1976D2"))
-        adView.setCtaTextColor(Color.WHITE)
-
-        // Load and display ad
-        loadNativeAd()
-    }
-
-    private fun loadNativeAd() {
-        lifecycleScope.launch {
-            nativeAdManager.awaitNativeAd(
-                key = MyApplication.HOME_NATIVE_POOL,
-                timeoutMs = 8_000L,
-            )?.let { ad ->
-                currentNativeAd?.destroy()
-                currentNativeAd = ad
-                adView.setNativeAd(ad)
+            NativeAdCallToActionView(modifier = Modifier.padding(top = 8.dp)) {
+                Button(onClick = {}) { Text(text = nativeAd.callToAction.orEmpty()) }
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        currentNativeAd?.destroy()
-        currentNativeAd = null
     }
 }
 ```
 
-### Template Types (AdTemplateType)
+### Ad Asset Composables
 
-| Enum Value | XML Value | Description |
-|------------|-----------|-------------|
-| `AdTemplateType.SMALL` | `small` | Compact horizontal layout |
-| `AdTemplateType.MEDIUM` | `medium` | Full-featured card layout |
-| `AdTemplateType.LARGE` | `large` | Premium layout with media, rating, price |
-| `AdTemplateType.HEADLINE` | `headline` | Ultra-compact header layout |
-| `AdTemplateType.ICON_SMALL` | `iconSmall` | Icon-focused content feed layout |
-| `AdTemplateType.CONTENT` | `content` | Social media style layout |
-| `AdTemplateType.FULL_WIDTH_MEDIA` | `fullWidthMedia` | High-impact hero placement |
-| `AdTemplateType.APP_INSTALL` | `appInstall` | App Store style layout |
+| Composable | Registers | Notes |
+|------------|-----------|-------|
+| `NativeAdView(nativeAd) { }` | The ad container | Required root; registers the ad when the assets are laid out |
+| `NativeAdHeadlineView { }` | `headlineView` | Required by the SDK |
+| `NativeAdBodyView { }` | `bodyView` | |
+| `NativeAdCallToActionView { }` | `callToActionView` | Wrap a button, or the whole card to make it all clickable |
+| `NativeAdIconView { }` | `iconView` | Render the icon with `nativeAd.icon?.drawable` / `uri` |
+| `NativeAdMediaView(modifier)` | The `MediaView` | Video capable; needs at least 120x120dp |
+| `NativeAdAdvertiserView { }` | `advertiserView` | |
+| `NativeAdStoreView { }` | `storeView` | |
+| `NativeAdPriceView { }` | `priceView` | |
+| `NativeAdStarRatingView { }` | `starRatingView` | |
+| `NativeAdChoicesView(modifier)` | `adChoicesView` | |
+| `NativeAdAttribution(...)` | - | The "Ad" badge, styled with Material 3 colors |
 
-### Complete Example
-
-This showcase requests three distinct ads. With the default one-ad buffer they
-arrive through sequential SDK refills, so production screens should render each
-slot as optional and tolerate individual timeouts. Increase the buffer only
-after validating memory use and any mediation adapters.
-
-```kotlin
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.lifecycle.lifecycleScope
-import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.soosu.nextgen.admobnative.NativeAdTemplateView
-import kotlinx.coroutines.launch
-
-class ViewSampleActivity : ComponentActivity() {
-
-    private val nativeAds = mutableListOf<NativeAd>()
-    private val nativeAdManager
-        get() = (application as MyApplication).nativeAdLoadManager
-
-    private lateinit var adSmall: NativeAdTemplateView
-    private lateinit var adMedium: NativeAdTemplateView
-    private lateinit var adLarge: NativeAdTemplateView
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_view_sample)
-
-        adSmall = findViewById(R.id.ad_small)
-        adMedium = findViewById(R.id.ad_medium)
-        adLarge = findViewById(R.id.ad_large)
-
-        loadAdFor(adSmall)
-        loadAdFor(adMedium)
-        loadAdFor(adLarge)
-    }
-
-    private fun loadAdFor(templateView: NativeAdTemplateView) {
-        lifecycleScope.launch {
-            nativeAdManager.awaitNativeAd(
-                key = MyApplication.HOME_NATIVE_POOL,
-                timeoutMs = 8_000L,
-            )?.let { ad ->
-                nativeAds.add(ad)
-                templateView.setNativeAd(ad)
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        nativeAds.forEach { it.destroy() }
-        nativeAds.clear()
-    }
-}
-```
+> **Upgrading from 1.7.x**
+> The View-based API (`NativeAdTemplateView`, `AdTemplateType` and the `app:adTemplate` XML
+> attributes) has been removed together with the `gnt_ad_*` layouts. Host the template composables
+> in a `ComposeView` if you still need them inside a View hierarchy, or build your own layout with
+> the asset composables above.
 
 ---
 

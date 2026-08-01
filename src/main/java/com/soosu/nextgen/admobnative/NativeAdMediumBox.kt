@@ -1,21 +1,41 @@
 package com.soosu.nextgen.admobnative
 
-import android.annotation.SuppressLint
-import android.graphics.drawable.GradientDrawable
-import android.util.Log
-import android.view.View
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.viewinterop.AndroidViewBinding
-import androidx.core.graphics.ColorUtils
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
-import com.soosu.nextgen.admobnative.databinding.GntAdMediumTemplateViewBinding
 
-@SuppressLint("SetTextI18n")
+/**
+ * Full featured card template: headline, advertiser line, inline call to action, body and media.
+ *
+ * The whole card acts as the call to action, so a tap anywhere opens the ad.
+ *
+ * @param nativeAd The native ad to display. Nothing is rendered while it is `null`.
+ * @param modifier Compose modifier
+ * @param backgroundColor Card background color
+ * @param textColor Text and chevron color
+ */
 @Composable
 fun NativeAdMediumBox(
     nativeAd: NativeAd?,
@@ -23,93 +43,123 @@ fun NativeAdMediumBox(
     backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     textColor: Color = MaterialTheme.colorScheme.onBackground
 ) {
-
     Box(modifier = modifier) {
+        if (nativeAd == null) return@Box
 
-        if (nativeAd != null) {
-            val bgColor = backgroundColor.toArgb()
-            val txtColor = textColor.toArgb()
+        val iconImage = rememberNativeAdImage(nativeAd.iconImageDrawable(), nativeAd.iconImageUri())
+        val media = rememberNativeAdMediaState(nativeAd)
 
-            AndroidViewBinding(
-                factory = GntAdMediumTemplateViewBinding::inflate,
-            ) {
+        NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
+            NativeAdCallToActionView(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(backgroundColor)
+                        .heightIn(min = 80.dp)
+                ) {
+                    NativeAdHeadlineView(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, top = 20.dp, end = 16.dp)
+                    ) {
+                        Text(
+                            text = nativeAd.headline.orEmpty(),
+                            color = textColor,
+                            fontSize = 15.sp,
+                            lineHeight = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
 
-                val adView = nativeAdView.also { adView ->
-                    adView.callToActionView = background
-                    adView.headlineView = primary
-                    adView.iconView = icon
-                    adView.bodyView = description
-                }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, top = 3.dp, end = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        NativeAdIconAsset(
+                            image = iconImage,
+                            size = 16.dp,
+                            shape = RoundedCornerShape(8.dp),
+                        )
 
-                background.setBackgroundColor(bgColor)
-                secondary.setTextColor(txtColor)
-                primary.setTextColor(txtColor)
-                description.setTextColor(txtColor)
-                cta.setTextColor(txtColor)
-                arrow.setColorFilter(txtColor)
+                        NativeAdBadge(
+                            textColor = textColor,
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .alpha(0.8f),
+                        )
 
-                // Set AD badge colors (harmonize with other text)
-                ad.setTextColor(txtColor)
-                ad.background = GradientDrawable().apply {
-                    setColor(ColorUtils.setAlphaComponent(txtColor, 38))
-                    cornerRadius = 6f * ad.context.resources.displayMetrics.density
-                }
+                        Text(
+                            text = nativeAd.secondaryText(),
+                            color = textColor,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .alpha(0.8f),
+                        )
+                    }
 
-                secondary.text = when {
-                    !nativeAd.body.isNullOrEmpty() -> nativeAd.body
-                    !nativeAd.advertiser.isNullOrEmpty() -> nativeAd.advertiser
-                    !nativeAd.store.isNullOrEmpty() -> nativeAd.store
-                    !nativeAd.callToAction.isNullOrEmpty() -> nativeAd.callToAction
-                    else -> "ˑˑˑ"
-                }
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = nativeAd.callToAction.orEmpty(),
+                            color = textColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
 
-                nativeAd.headline?.let { headline ->
-                    primary.text = headline
-                }
+                        Icon(
+                            painter = painterResource(R.drawable.round_chevron_right_24),
+                            contentDescription = null,
+                            tint = textColor,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
 
-                nativeAd.callToAction?.let { callToAction ->
-                    cta.text = callToAction
-                }
-
-                icon.setNativeAdImage(
-                    drawable = nativeAd.iconImageDrawable(),
-                    uri = nativeAd.iconImageUri(),
-                    container = iconContainer
-                )
-
-                nativeAd.body?.let { body ->
-                    description.text = body
-                    description.visibility = View.VISIBLE
-                } ?: run {
-                    description.visibility = View.GONE
-                }
-
-                // Set media content (video or image)
-                val mediaContent = adMedia.setNativeAdMediaOrImage(
-                    nativeAd = nativeAd,
-                    fallbackImageView = adImage,
-                    container = adImageContainer
-                ) { mediaContent ->
-                    Log.d(
-                        "NativeAdMediumBox",
-                        "MediaContent - aspectRatio: ${mediaContent.aspectRatio}"
-                    )
-                    adMedia.post {
-                        val width = adMedia.width
-                        if (width > 0 && mediaContent.aspectRatio > 0) {
-                            val height = (width / mediaContent.aspectRatio).toInt()
-                            adMedia.layoutParams = adMedia.layoutParams.apply {
-                                this.height = height
-                            }
+                    nativeAd.body?.let { body ->
+                        NativeAdBodyView(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, top = 14.dp, end = 16.dp)
+                        ) {
+                            Text(
+                                text = body,
+                                color = textColor,
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
+
+                    if (media.hasMedia) {
+                        NativeAdMediaContent(
+                            state = media,
+                            contentScale = ContentScale.FillWidth,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 20.dp)
+                                .let {
+                                    if (media.mediaContent != null) {
+                                        it.aspectRatio(media.aspectRatio)
+                                    } else {
+                                        it
+                                    }
+                                },
+                        )
+                    }
                 }
-
-                adView.registerNativeAd(nativeAd, if (mediaContent != null) adMedia else null)
-
             }
-
         }
     }
-
 }

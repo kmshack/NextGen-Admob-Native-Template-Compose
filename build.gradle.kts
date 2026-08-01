@@ -32,7 +32,6 @@ android {
 
     buildFeatures {
         compose = true
-        viewBinding = true
     }
 }
 
@@ -45,7 +44,6 @@ dependencies {
     api("androidx.compose.ui:ui")
     api("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.ui:ui-viewbinding")
 
     // Google AdMob Next-Gen SDK
     api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.3.0")
@@ -73,7 +71,7 @@ afterEvaluate {
 
                 groupId = "com.github.kmshack"
                 artifactId = "nextgen-admob-native-template-compose"
-                version = "1.7.6"
+                version = "1.8.0"
 
                 pom {
                     name.set("NextGen Admob Native Template Compose")

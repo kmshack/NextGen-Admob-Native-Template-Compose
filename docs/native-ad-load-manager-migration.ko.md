@@ -197,21 +197,25 @@ fun HomeNativeAd(
 
 ## 5. View / Activity
 
+라이브러리 template은 모두 Composable이므로 View 기반 화면에서는
+`ComposeView`로 호스팅합니다.
+
 ```kotlin
 class DetailActivity : ComponentActivity() {
     private val nativeAdManager
         get() = (application as MyApplication).nativeAdLoadManager
-    private lateinit var nativeAdTemplateView: NativeAdTemplateView
-    private var nativeAd: NativeAd? = null
+    private var nativeAd by mutableStateOf<NativeAd?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
-        nativeAdTemplateView = findViewById(R.id.native_ad)
+
+        findViewById<ComposeView>(R.id.native_ad).setContent {
+            NativeAdSmallBox(nativeAd = nativeAd)
+        }
 
         lifecycleScope.launch {
             nativeAd = nativeAdManager.awaitNativeAd("detail", 8_000L)
-            nativeAd?.let(nativeAdTemplateView::setNativeAd)
         }
     }
 
@@ -224,8 +228,8 @@ class DetailActivity : ComponentActivity() {
 ```
 
 Manager는 raw Next-Gen `NativeAd`를 반환하므로 Compose template,
-`ComposeView`, `NativeAdTemplateView`, 직접 만든 `NativeAdView` 모두 같은
-방식으로 사용할 수 있습니다.
+`ComposeView`, 직접 만든 `NativeAdView` 모두 같은 방식으로 사용할 수
+있습니다.
 
 ## 6. ViewModel과 StateFlow
 
@@ -457,7 +461,7 @@ manager.register(
 
 - 기존 `NativeAdLoaderHelper.loadWithRetry()`는 삭제되거나 변경되지
   않았습니다.
-- 기존 template과 `NativeAdTemplateView` API도 그대로입니다.
+- 기존 template composable API도 그대로입니다.
 - 따라서 앱별로 한 placement씩 단계적으로 Manager로 전환할 수 있습니다.
 - 아직 전환하지 않은 placement는 기존 직접 로드 방식을 계속 사용할 수
   있습니다.
