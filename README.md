@@ -38,6 +38,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 - [Quick Start](#quick-start)
 - [Native Ad Preloading](#native-ad-preloading)
 - [Interstitial Ad Preloading](#interstitial-ad-preloading)
+- [Rewarded Interstitial Ad Preloading](#rewarded-interstitial-ad-preloading)
 - [Available Templates](#available-templates)
 - [API Reference](#api-reference)
 - [Advanced Usage](#advanced-usage)
@@ -83,7 +84,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.8.4")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.8.5")
 }
 ```
 
@@ -323,6 +324,62 @@ upgrades, consent withdrawal, and Remote Config off.
 current default is `2` — a second ad that a single slot never shows is still a
 billed request. See the
 [Korean BannerAdLoadManager migration guide](docs/banner-ad-load-manager-migration.ko.md).
+
+---
+
+## Rewarded Interstitial Ad Preloading
+
+`RewardedInterstitialAdLoadManager` wraps the Next-Gen SDK
+`RewardedInterstitialAdPreloader` with the same pool model as the interstitial
+manager. The only API difference is `show`: the SDK requires a reward listener,
+so `showAdIfAvailable` takes one.
+
+```kotlin
+class MyApplication : Application() {
+    val rewardedInterstitialAdLoadManager = RewardedInterstitialAdLoadManager()
+
+    override fun onCreate() {
+        super.onCreate()
+        rewardedInterstitialAdLoadManager.registerIfAbsent(
+            key = EXTRA_LIFE,
+            adUnitId = "YOUR_REWARDED_INTERSTITIAL_AD_UNIT_ID",
+        )
+        // start() after consent + SDK initialization; a call made earlier is
+        // deferred and resumed automatically.
+        rewardedInterstitialAdLoadManager.start(EXTRA_LIFE)
+    }
+
+    companion object {
+        const val EXTRA_LIFE = "extra-life"
+    }
+}
+```
+
+Show at the reward moment:
+
+```kotlin
+// Simplest: manager polls, shows, and destroys the ad after dismiss.
+app.rewardedInterstitialAdLoadManager.showAdIfAvailable(
+    activity = activity,
+    key = EXTRA_LIFE,
+    onUserEarnedReward = { reward -> grantCoins(reward.amount) },
+) {
+    // Dismissed, failed to show, or no ad was available.
+    resumeGame()
+}
+
+// Full control: ownership of the polled ad transfers to the caller.
+val ad = app.rewardedInterstitialAdLoadManager.pollAd(EXTRA_LIFE)
+
+// Or suspend until an ad is ready (started pools only).
+val ad = app.rewardedInterstitialAdLoadManager.awaitAd(EXTRA_LIFE, timeoutMs = 5_000L)
+```
+
+Grant the reward in `onUserEarnedReward`, not in `onShowAdComplete`: the SDK
+delivers it while the ad is on screen, and it never fires when the user skips
+out early. Per-show options such as `setServerSideVerificationOptions` and
+`setImmersiveMode` require `pollAd`, because `showAdIfAvailable` keeps the ad
+inside the manager.
 
 ---
 
