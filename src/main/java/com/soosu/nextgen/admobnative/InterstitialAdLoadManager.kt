@@ -26,17 +26,21 @@ import kotlinx.coroutines.withTimeoutOrNull
  * extras are preserved.
  *
  * @param request request used whenever this pool needs another ad
- * @param bufferSize maximum number of ready ads for this pool. `null` delegates
- * sizing to the SDK. The library default is one because interstitial fill is
+     * @param bufferSize maximum number of ready ads for this pool. `null` delegates
+     * sizing to the SDK (currently two), which may leave an unseen extra request.
+     * The library default is one because interstitial fill is
  * usually consumed at a single transition point.
  * @param maxAdAgeMs maximum queued-ad age this manager will return. Expiration
  * is checked when the pool is accessed; ads already handed to a caller are not
  * managed by this value.
+ * @param shouldSuppressAds returns true when this pool must not request or
+ * show ads, such as after a premium purchase.
  */
 data class InterstitialAdLoadConfig @JvmOverloads constructor(
     val request: AdRequest,
     val bufferSize: Int? = DEFAULT_BUFFER_SIZE,
     val maxAdAgeMs: Long = DEFAULT_MAX_AD_AGE_MS,
+    val shouldSuppressAds: () -> Boolean = { false },
 ) {
     init {
         require(bufferSize == null || bufferSize >= 1) {
@@ -319,6 +323,13 @@ class InterstitialAdLoadManager private constructor(
      */
     fun start(key: String): Boolean {
         requireValidKey(key)
+        val suppressed = synchronized(lock) {
+            pools[key]?.config?.shouldSuppressAds?.invoke() == true
+        }
+        if (suppressed) {
+            stop(key)
+            return false
+        }
         if (!isSdkInitialized()) {
             schedulePendingStart(key)
             return false
@@ -401,7 +412,9 @@ class InterstitialAdLoadManager private constructor(
     }
 
     /**
-     * Restarts a registered pool with its current configuration.
+     * Restarts a registered pool with its current configuration. This destroys
+     * all queued ads first and therefore costs a fresh request for each buffer
+     * slot. Prefer [start] for an idempotent call.
      */
     fun refresh(key: String): Boolean {
         requireValidKey(key)
@@ -546,8 +559,27 @@ class InterstitialAdLoadManager private constructor(
                 }
 
                 fun pollIfReady() {
-                    if (!continuation.isActive) return
-                    pollAd(key)?.let(::finish)
+                    if (!continuation.isActive ||
+                        !completed.compareAndSet(false, true)
+                    ) return
+
+                    val ad = pollAd(key)
+                    if (ad == null) {
+                        completed.set(false)
+                        return
+                    }
+                    if (!continuation.isActive) {
+                        ad.destroy()
+                        removeListener(key, listener)
+                        return
+                    }
+                    removeListener(key, listener)
+                    continuation.resume(
+                        value = ad,
+                        onCancellation = { _, cancelledAd, _ ->
+                            cancelledAd?.destroy()
+                        },
+                    )
                 }
 
                 listener = object : InterstitialAdLoadListener {
@@ -612,11 +644,12 @@ class InterstitialAdLoadManager private constructor(
         activity: Activity,
         key: String,
         onShowAdComplete: () -> Unit = {},
+        stopAfterShow: Boolean = false,
     ) {
         requireValidKey(key)
         if (Looper.myLooper() != Looper.getMainLooper()) {
             postToMain {
-                showAdIfAvailable(activity, key, onShowAdComplete)
+                showAdIfAvailable(activity, key, onShowAdComplete, stopAfterShow)
             }
             return
         }
@@ -641,6 +674,7 @@ class InterstitialAdLoadManager private constructor(
                 postToMain {
                     isShowingAd = false
                     ad.destroy()
+                    if (stopAfterShow) stop(key)
                     onShowAdComplete()
                 }
             }
@@ -651,13 +685,21 @@ class InterstitialAdLoadManager private constructor(
                 postToMain {
                     isShowingAd = false
                     ad.destroy()
+                    if (stopAfterShow) stop(key)
                     onShowAdComplete()
                 }
             }
         }
 
         isShowingAd = true
-        ad.show(activity)
+        try {
+            ad.show(activity)
+        } catch (_: RuntimeException) {
+            isShowingAd = false
+            ad.destroy()
+            if (stopAfterShow) stop(key)
+            onShowAdComplete()
+        }
     }
 
     fun isShowingAd(): Boolean = isShowingAd

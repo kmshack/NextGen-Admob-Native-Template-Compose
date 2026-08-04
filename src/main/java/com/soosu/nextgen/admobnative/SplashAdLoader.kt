@@ -65,6 +65,8 @@ object SplashAdLoader {
                     Log.d(TAG, "Splash ad loaded")
                     if (cont.isActive) {
                         cont.resume(ad)
+                    } else {
+                        ad.destroy()
                     }
                 }
 

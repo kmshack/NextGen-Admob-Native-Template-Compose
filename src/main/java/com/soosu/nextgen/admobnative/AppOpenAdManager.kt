@@ -39,6 +39,9 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     private var lastAdShownTime: Long = 0
     private var lastAdLoadAttemptTime: Long = 0
 
+    @Volatile
+    private var stoppedByPolicy = false
+
     private val keywordLock = Any()
     private val preloaderLock = Any()
     private val runtimeKeywords: MutableList<String> = mutableListOf()
@@ -152,6 +155,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
      * compatibility with existing applications.
      */
     fun loadAd(context: Context) {
+        stoppedByPolicy = false
         if (!MobileAds.isInitialized) {
             Log.d(TAG, "MobileAds is not initialized yet, deferring app open ad load")
             schedulePendingInitLoad(context.applicationContext)
@@ -203,9 +207,12 @@ class AppOpenAdManager(private val config: AdmobConfig) {
     /**
      * Stops this manager's SDK-managed buffer and releases all queued ads.
      *
-     * A later [loadAd] or [showAdIfAvailable] call can start it again.
+     * A later [loadAd] or [showAdIfAvailable] call can start it again. The
+     * stopped flag prevents a synchronous show callback from reviving a pool
+     * after an app has explicitly ended a one-shot flow.
      */
     fun stopPreloading(): Boolean {
+        stoppedByPolicy = true
         synchronized(initLoadLock) {
             pendingInitLoadContext = null
         }
@@ -224,10 +231,11 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         activity: Activity,
         onShowAdComplete: () -> Unit = {},
         loadAndShowIfMissing: Boolean = false,
+        stopAfterShow: Boolean = false,
     ) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post {
-                showAdIfAvailable(activity, onShowAdComplete, loadAndShowIfMissing)
+                showAdIfAvailable(activity, onShowAdComplete, loadAndShowIfMissing, stopAfterShow)
             }
             return
         }
@@ -265,14 +273,14 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         }
 
         val oneShotAd = getValidOneShotAd()
-        val ad = oneShotAd ?: pollPreloadedAd()
+        val ad = oneShotAd ?: if (stopAfterShow) null else pollPreloadedAd()
         if (ad == null) {
             Log.d(TAG, "Gating: no ad available")
             if (loadAndShowIfMissing) {
                 if (config.useAppOpenAdPreloader) {
                     waitForPreloadedAdAndShow(activity, onShowAdComplete)
                 } else {
-                    loadOneShotAdAndShow(activity, onShowAdComplete)
+                    loadOneShotAdAndShow(activity, onShowAdComplete, stopAfterShow)
                 }
             } else {
                 onShowAdComplete()
@@ -281,11 +289,11 @@ class AppOpenAdManager(private val config: AdmobConfig) {
             return
         }
 
-        showAd(activity, ad, onShowAdComplete)
+        showAd(activity, ad, onShowAdComplete, stopAfterShow)
     }
 
     private fun ensurePreloaderStarted(): Boolean {
-        if (!config.useAppOpenAdPreloader || !MobileAds.isInitialized) return false
+        if (stoppedByPolicy || !config.useAppOpenAdPreloader || !MobileAds.isInitialized) return false
 
         val adUnitId = config.foregroundAdUnitId ?: return false
         val keywords = getKeywords()
@@ -691,6 +699,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         activity: Activity,
         ad: AppOpenAd,
         onShowAdComplete: () -> Unit,
+        stopAfterShow: Boolean = false,
     ) {
         ad.adEventCallback = object : AppOpenAdEventCallback {
             override fun onAdDismissedFullScreenContent() {
@@ -702,7 +711,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
                     lastAdShownTime = SystemClock.elapsedRealtime()
                     Log.d(TAG, "Ad dismissed")
                     onShowAdComplete()
-                    loadAd(activity)
+                    if (stopAfterShow) stopPreloading() else loadAd(activity)
                 }
             }
 
@@ -715,7 +724,7 @@ class AppOpenAdManager(private val config: AdmobConfig) {
                     ad.destroy()
                     Log.d(TAG, "Ad failed to show: ${error.message}")
                     onShowAdComplete()
-                    loadAd(activity)
+                    if (stopAfterShow) stopPreloading() else loadAd(activity)
                 }
             }
 
@@ -729,11 +738,22 @@ class AppOpenAdManager(private val config: AdmobConfig) {
         }
 
         isShowingAd = true
-        ad.show(activity)
+        try {
+            ad.show(activity)
+        } catch (_: RuntimeException) {
+            isShowingAd = false
+            ad.destroy()
+            if (stopAfterShow) stopPreloading()
+            onShowAdComplete()
+        }
     }
 
-    private fun loadOneShotAdAndShow(activity: Activity, onShowAdComplete: () -> Unit) {
-        if (!MobileAds.isInitialized) {
+    private fun loadOneShotAdAndShow(
+        activity: Activity,
+        onShowAdComplete: () -> Unit,
+        stopAfterShow: Boolean,
+    ) {
+        if (stoppedByPolicy || !MobileAds.isInitialized) {
             Log.d(TAG, "loadAdAndShow: SDK not initialized, skipping")
             onShowAdComplete()
             return
@@ -764,7 +784,11 @@ class AppOpenAdManager(private val config: AdmobConfig) {
                         adLoadedTime = SystemClock.elapsedRealtime()
                         isLoadingAd = false
                         Log.d(TAG, "loadAdAndShow: ad loaded, showing immediately")
-                        showAdIfAvailable(activity, onShowAdComplete)
+                        showAdIfAvailable(
+                            activity,
+                            onShowAdComplete,
+                            stopAfterShow = stopAfterShow,
+                        )
                     }
                 }
 

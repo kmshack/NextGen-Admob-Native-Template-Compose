@@ -33,11 +33,15 @@ import kotlinx.coroutines.withTimeoutOrNull
  * @param maxAdAgeMs maximum queued-ad age this manager will return. Expiration
  * is checked when the pool is accessed; ads already handed to a caller are not
  * managed by this value.
+ * @param autoPruneExpired when true, [NativeAdLoadManager.getState] removes
+ * expired queued ads before reporting the snapshot. This keeps [NativeAdLoadState.usableCount]
+ * useful for UI gates while retaining the non-destructive default.
  */
 data class NativeAdLoadConfig @JvmOverloads constructor(
     val request: NativeAdRequest,
     val bufferSize: Int? = DEFAULT_BUFFER_SIZE,
     val maxAdAgeMs: Long = DEFAULT_MAX_AD_AGE_MS,
+    val autoPruneExpired: Boolean = false,
 ) {
     init {
         require(bufferSize == null || bufferSize >= 1) {
@@ -65,6 +69,8 @@ data class NativeAdLoadState(
     val availableCount: Int,
     val isLoading: Boolean,
     val lastError: LoadAdError?,
+    /** Available ads after expiration cleanup; with auto-pruning disabled this equals availableCount. */
+    val usableCount: Int = availableCount,
 )
 
 /**
@@ -354,7 +360,9 @@ class NativeAdLoadManager private constructor(
     }
 
     /**
-     * Restarts a registered pool with its current configuration.
+     * Restarts a registered pool with its current configuration. This destroys
+     * queued ads and costs a fresh request for each buffer slot; prefer [start]
+     * for an idempotent call.
      */
     fun refresh(key: String): Boolean {
         requireValidKey(key)
@@ -552,8 +560,24 @@ class NativeAdLoadManager private constructor(
                 }
 
                 fun pollIfReady() {
-                    if (!continuation.isActive) return
-                    pollResult(key)?.let(::finish)
+                    if (!continuation.isActive || !completed.compareAndSet(false, true)) return
+                    val result = pollResult(key)
+                    if (result == null) {
+                        completed.set(false)
+                        return
+                    }
+                    if (!continuation.isActive) {
+                        result.containedAd().destroy()
+                        removeListener(key, listener)
+                        return
+                    }
+                    removeListener(key, listener)
+                    continuation.resume(
+                        value = result,
+                        onCancellation = { _, cancelledResult, _ ->
+                            cancelledResult?.containedAd()?.destroy()
+                        },
+                    )
                 }
 
                 listener = object : NativeAdLoadListener {
@@ -666,6 +690,12 @@ class NativeAdLoadManager private constructor(
      */
     fun getState(key: String): NativeAdLoadState? {
         requireValidKey(key)
+        val autoPrune = synchronized(lock) {
+            pools[key]?.config?.autoPruneExpired == true
+        }
+        if (autoPrune) {
+            pruneExpired(key)
+        }
         return synchronized(lock) {
             pools[key]?.let(::stateLocked)
         }
@@ -963,6 +993,7 @@ class NativeAdLoadManager private constructor(
             availableCount = availableCount,
             isLoading = pool.isStarted && availableCount == 0,
             lastError = pool.lastError,
+            usableCount = availableCount,
         )
     }
 
@@ -972,6 +1003,7 @@ class NativeAdLoadManager private constructor(
             availableCount = 0,
             isLoading = false,
             lastError = pool.lastError,
+            usableCount = 0,
         )
     }
 

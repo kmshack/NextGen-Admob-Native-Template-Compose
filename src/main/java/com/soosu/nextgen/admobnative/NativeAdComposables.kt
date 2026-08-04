@@ -121,10 +121,15 @@ fun NativeAdView(
     DisposableEffect(currentNativeAd, currentNativeAdView, currentMediaView) {
         // Re-register whenever the ad, the container or the media view changes: the asset views are
         // created asynchronously by the nested composition, so registration has to be re-attempted.
-        currentNativeAdView?.registerWhenLaidOut(currentNativeAd, currentMediaView)
+        val registerRunnable = currentNativeAdView?.registerWhenLaidOut(
+            currentNativeAd,
+            currentMediaView,
+        )
 
         onDispose {
-            // No cleanup needed: the SDK unregisters when the view is detached from the window.
+            if (registerRunnable != null) {
+                (currentMediaView ?: currentNativeAdView)?.removeCallbacks(registerRunnable)
+            }
         }
     }
 }
@@ -359,7 +364,12 @@ private fun textStyleWithoutFontPadding(): TextStyle {
  * Posting matters for the media view in particular: the SDK validates that it is at least 120x120,
  * which fails while the view is still 0x0.
  */
-private fun SdkNativeAdView.registerWhenLaidOut(nativeAd: NativeAd, mediaView: MediaView?) {
+private fun SdkNativeAdView.registerWhenLaidOut(
+    nativeAd: NativeAd,
+    mediaView: MediaView?,
+): Runnable {
     val anchor = mediaView ?: this
-    anchor.post { registerNativeAd(nativeAd, mediaView) }
+    val runnable = Runnable { registerNativeAd(nativeAd, mediaView) }
+    anchor.post(runnable)
+    return runnable
 }

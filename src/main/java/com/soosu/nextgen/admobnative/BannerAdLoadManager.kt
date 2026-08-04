@@ -32,11 +32,14 @@ import kotlinx.coroutines.withTimeoutOrNull
  * @param maxAdAgeMs maximum queued-ad age this manager will return. Expiration
  * is checked when the pool is accessed; ads already handed to a caller are not
  * managed by this value.
+ * @param shouldSuppressAds returns true when this pool must not request ads,
+ * such as after a premium purchase.
  */
 data class BannerAdLoadConfig @JvmOverloads constructor(
     val request: BannerAdRequest,
     val bufferSize: Int? = DEFAULT_BUFFER_SIZE,
     val maxAdAgeMs: Long = DEFAULT_MAX_AD_AGE_MS,
+    val shouldSuppressAds: () -> Boolean = { false },
 ) {
     init {
         require(bufferSize == null || bufferSize >= 1) {
@@ -323,6 +326,13 @@ class BannerAdLoadManager private constructor(
      */
     fun start(key: String): Boolean {
         requireValidKey(key)
+        val suppressed = synchronized(lock) {
+            pools[key]?.config?.shouldSuppressAds?.invoke() == true
+        }
+        if (suppressed) {
+            stop(key)
+            return false
+        }
         if (!isSdkInitialized()) {
             schedulePendingStart(key)
             return false
@@ -405,7 +415,9 @@ class BannerAdLoadManager private constructor(
     }
 
     /**
-     * Restarts a registered pool with its current configuration.
+     * Restarts a registered pool with its current configuration. This destroys
+     * queued ads and costs a fresh request for each buffer slot; prefer [start]
+     * for an idempotent call.
      */
     fun refresh(key: String): Boolean {
         requireValidKey(key)
@@ -552,8 +564,22 @@ class BannerAdLoadManager private constructor(
                 }
 
                 fun pollIfReady() {
-                    if (!continuation.isActive) return
-                    pollAd(key)?.let(::finish)
+                    if (!continuation.isActive || !completed.compareAndSet(false, true)) return
+                    val ad = pollAd(key)
+                    if (ad == null) {
+                        completed.set(false)
+                        return
+                    }
+                    if (!continuation.isActive) {
+                        ad.destroy()
+                        removeListener(key, listener)
+                        return
+                    }
+                    removeListener(key, listener)
+                    continuation.resume(
+                        value = ad,
+                        onCancellation = { _, cancelledAd, _ -> cancelledAd?.destroy() },
+                    )
                 }
 
                 listener = object : BannerAdLoadListener {

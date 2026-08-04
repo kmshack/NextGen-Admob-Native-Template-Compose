@@ -84,7 +84,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.8.6")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.8.7")
 }
 ```
 
@@ -120,7 +120,7 @@ class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        nativeAdLoadManager.register(
+        nativeAdLoadManager.registerIfAbsent(
             key = HOME_NATIVE_POOL,
             request = createNativeAdRequestWithDefaults("YOUR_AD_UNIT_ID"),
             bufferSize = 1,
@@ -241,7 +241,7 @@ class MyApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        interstitialAdLoadManager.register(
+        interstitialAdLoadManager.registerIfAbsent(
             key = GAME_OVER_INTERSTITIAL,
             adUnitId = "YOUR_INTERSTITIAL_AD_UNIT_ID",
         )

@@ -34,9 +34,9 @@ object NativeAdLoaderHelper {
      * 네이티브 광고를 재시도 로직과 함께 로드.
      *
      * @param adUnitId 광고 단위 ID
-     * @param maxRetries 최대 재시도 횟수 (기본 3)
+     * @param maxRetries 최대 재시도 횟수 (기본 1)
      * @param initialDelayMs 첫 재시도 대기 시간 (기본 2초, 지수 백오프)
-     * @param retryOnNoFill NO_FILL 에러 시 재시도 여부 (기본 true)
+     * @param retryOnNoFill NO_FILL 에러 시 재시도 여부 (기본 false)
      * @param noFillDelayMs NO_FILL 재시도 대기 시간 (기본 30초)
      * @param noFillMaxRetries NO_FILL 최대 재시도 횟수 (기본 1)
      * @param mediaAspectRatio 미디어 종횡비 (기본 ANY)
@@ -45,9 +45,9 @@ object NativeAdLoaderHelper {
      */
     suspend fun loadWithRetry(
         adUnitId: String,
-        maxRetries: Int = 3,
+        maxRetries: Int = 1,
         initialDelayMs: Long = 2_000L,
-        retryOnNoFill: Boolean = true,
+        retryOnNoFill: Boolean = false,
         noFillDelayMs: Long = 30_000L,
         noFillMaxRetries: Int = 1,
         mediaAspectRatio: NativeAd.NativeMediaAspectRatio = NativeAd.NativeMediaAspectRatio.ANY,
