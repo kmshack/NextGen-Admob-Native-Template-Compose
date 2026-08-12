@@ -58,8 +58,8 @@ fun NativeAdHeadlineBox(
         NativeAdView(
             nativeAd = nativeAd,
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(contentsPaddingValues)
+                .fillMaxWidth()
         ) {
             // The whole slot is the call to action, not just the label: the row on its own is a
             // touch target well below the 48dp minimum. The content stays centered inside it.
