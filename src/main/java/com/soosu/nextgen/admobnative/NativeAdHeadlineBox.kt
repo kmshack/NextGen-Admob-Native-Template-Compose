@@ -58,7 +58,6 @@ fun NativeAdHeadlineBox(
         NativeAdView(
             nativeAd = nativeAd,
             modifier = Modifier
-                .padding(contentsPaddingValues)
                 .fillMaxWidth()
         ) {
             // The whole slot is the call to action, not just the label: the row on its own is a
@@ -67,7 +66,8 @@ fun NativeAdHeadlineBox(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = MIN_TOUCH_TARGET),
+                        .heightIn(min = MIN_TOUCH_TARGET)
+                        .padding(contentsPaddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
