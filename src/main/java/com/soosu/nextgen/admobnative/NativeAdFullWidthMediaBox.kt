@@ -254,7 +254,7 @@ private fun CallToActionButton(
         modifier = Modifier
             .clip(RoundedCornerShape(24.dp))
             .background(containerColor)
-            .widthIn(min = 140.dp)
+            .widthIn(min = 100.dp)
             .padding(start = 20.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically

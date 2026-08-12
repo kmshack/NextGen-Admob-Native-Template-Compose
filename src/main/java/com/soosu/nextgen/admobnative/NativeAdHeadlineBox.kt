@@ -2,6 +2,7 @@ package com.soosu.nextgen.admobnative
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -44,7 +45,8 @@ fun NativeAdHeadlineBox(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
     textColor: Color = MaterialTheme.colorScheme.onBackground,
-    showImage: Boolean = true
+    showImage: Boolean = true,
+    contentsPaddingValues: PaddingValues = PaddingValues(0.dp),
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (nativeAd == null) return@Box
@@ -53,7 +55,12 @@ fun NativeAdHeadlineBox(
             drawable = nativeAd.primaryImageDrawable().takeIf { showImage },
             uri = nativeAd.primaryImageUri().takeIf { showImage },
         )
-        NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
+        NativeAdView(
+            nativeAd = nativeAd,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(contentsPaddingValues)
+        ) {
             // The whole slot is the call to action, not just the label: the row on its own is a
             // touch target well below the 48dp minimum. The content stays centered inside it.
             NativeAdCallToActionView(modifier = Modifier.fillMaxWidth()) {

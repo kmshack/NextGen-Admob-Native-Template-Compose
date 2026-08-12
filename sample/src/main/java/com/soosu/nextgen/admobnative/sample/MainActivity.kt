@@ -392,7 +392,8 @@ fun MainScreen() {
                     Column {
                         NativeAdHeadlineBox(
                             nativeAd = headlineAd,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            contentsPaddingValues = PaddingValues(horizontal = 100.dp)
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -401,7 +402,8 @@ fun MainScreen() {
                         NativeAdHeadlineBox(
                             nativeAd = headlineAd,
                             modifier = Modifier.fillMaxWidth(),
-                            showImage = false
+                            showImage = false,
+                            contentsPaddingValues = PaddingValues(horizontal = 16.dp)
                         )
                     }
                 }
