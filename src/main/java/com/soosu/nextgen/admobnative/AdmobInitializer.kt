@@ -46,6 +46,7 @@ object AdmobInitializer {
                         .build()
                     MobileAds.initialize(context.applicationContext, config) {
                         Log.d(TAG, "MobileAds initialized")
+                        MobileAds.setUserMutedApp(true)
                         initialized = true
                         if (cont.isActive) {
                             cont.resume(Unit)
