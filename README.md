@@ -218,7 +218,9 @@ placement policy in the app.
   and control `start()` / `stop()`.
 - `start()` before SDK initialization is deferred, not dropped: the pool starts
   automatically once `AdmobInitializer.initialize()` completes (this is the
-  initializer used internally by `SplashAdLoader.execute()`). A `stop()` or
+  initializer used internally by `SplashAdLoader.execute()`). Completion includes
+  request configuration and library post-processing; cancellation after SDK
+  initialization starts does not interrupt this shared setup. A `stop()` or
   `unregister()` before that point cancels the deferred start. Apps that call
   `MobileAds.initialize()` directly must still call `start()` afterwards.
 

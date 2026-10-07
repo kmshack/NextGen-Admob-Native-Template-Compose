@@ -9,8 +9,6 @@ import com.google.android.libraries.ads.mobile.sdk.common.AgeRestrictedTreatment
 import com.google.android.libraries.ads.mobile.sdk.common.RequestConfiguration
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
@@ -18,23 +16,16 @@ import kotlin.coroutines.resume
 object AdmobInitializer {
 
     private const val TAG = "AdmobInitializer"
-    private val mutex = Mutex()
-    private val listenerLock = Any()
-    private val pendingListeners = mutableListOf<() -> Unit>()
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    @Volatile
-    private var initialized = false
+    private val readiness = InitializationReadiness { mainHandler.post(it) }
 
     suspend fun initialize(context: Context, admobAppId: String) {
         initialize(context, admobAppId, null)
     }
 
     suspend fun initialize(context: Context, admobAppId: String, admobConfig: AdmobConfig?) {
-        if (initialized) return
-        mutex.withLock {
-            if (initialized) return
-
+        readiness.initialize {
             withContext(Dispatchers.IO) {
                 suspendCancellableCoroutine { cont ->
                     val config = InitializationConfig.Builder(admobAppId)
@@ -47,7 +38,6 @@ object AdmobInitializer {
                     MobileAds.initialize(context.applicationContext, config) {
                         Log.d(TAG, "MobileAds initialized")
                         MobileAds.setUserMutedApp(true)
-                        initialized = true
                         if (cont.isActive) {
                             cont.resume(Unit)
                         }
@@ -91,45 +81,18 @@ object AdmobInitializer {
                     MobileAds.setRequestConfiguration(builder.build())
                 }
             }
-
-            notifyInitialized()
         }
     }
 
-    fun isInitialized(): Boolean = initialized
+    /** True after SDK initialization and library request configuration complete. */
+    fun isInitialized(): Boolean = readiness.isInitialized()
 
     /**
-     * Runs [listener] once the SDK is initialized.
+     * Posts [listener] to the main thread once this library is ready, including
+     * request configuration and initialization post-processing.
      *
-     * If the SDK is already initialized the listener is posted to the main
-     * thread immediately; otherwise it is queued and posted after
-     * [initialize] completes. Listeners are always invoked on the main thread
-     * so they can safely start preloaders.
-     *
-     * Note: when an app initializes the SDK by calling `MobileAds.initialize`
-     * directly instead of [initialize], listeners queued before that point are
-     * never invoked.
+     * Calling `MobileAds.initialize` directly does not make this library ready;
+     * call [initialize] to apply its configuration and release queued listeners.
      */
-    fun whenInitialized(listener: () -> Unit) {
-        val runNow = synchronized(listenerLock) {
-            if (initialized || MobileAds.isInitialized) {
-                true
-            } else {
-                pendingListeners.add(listener)
-                false
-            }
-        }
-        if (runNow) {
-            mainHandler.post(listener)
-        }
-    }
-
-    private fun notifyInitialized() {
-        val listeners = synchronized(listenerLock) {
-            val snapshot = pendingListeners.toList()
-            pendingListeners.clear()
-            snapshot
-        }
-        listeners.forEach { mainHandler.post(it) }
-    }
+    fun whenInitialized(listener: () -> Unit) = readiness.whenInitialized(listener)
 }
