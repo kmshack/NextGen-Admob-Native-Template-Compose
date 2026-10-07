@@ -46,7 +46,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
 
     // Google AdMob Next-Gen SDK
-    api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.3.1")
+    api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.5.0")
 
     // UMP SDK
     api("com.google.android.ump:user-messaging-platform:4.0.0")
@@ -71,7 +71,7 @@ afterEvaluate {
 
                 groupId = "com.github.kmshack"
                 artifactId = "nextgen-admob-native-template-compose"
-                version = "1.9.2"
+                version = "1.9.3"
 
                 pom {
                     name.set("NextGen Admob Native Template Compose")
