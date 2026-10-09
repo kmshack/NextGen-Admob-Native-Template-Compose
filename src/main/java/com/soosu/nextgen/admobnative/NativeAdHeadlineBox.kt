@@ -31,7 +31,6 @@ private val MIN_TOUCH_TARGET = 48.dp
  * Ultra compact single line template for headers, toolbars and other tight spaces.
  *
  * The whole row acts as the call to action, so a tap anywhere opens the ad.
- * Video creatives expand to a media card so the SDK player and its controls remain visible.
  *
  * @param nativeAd The native ad to display. Nothing is rendered while it is `null`.
  * @param modifier Compose modifier
@@ -51,11 +50,6 @@ fun NativeAdHeadlineBox(
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (nativeAd == null) return@Box
-
-        if (nativeAd.mediaContent?.hasVideoContent == true) {
-            NativeAdMediumBox(nativeAd, Modifier.fillMaxWidth(), backgroundColor, textColor)
-            return@Box
-        }
 
         val iconImage = rememberNativeAdImage(
             drawable = nativeAd.primaryImageDrawable().takeIf { showImage },

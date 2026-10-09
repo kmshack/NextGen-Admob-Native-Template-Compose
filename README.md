@@ -54,7 +54,9 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 
 ## Requirements
 
-Release `1.9.5` includes GMA Next-Gen SDK `1.5.0` and the native interaction and layout fixes verified in [device QA](qa_reports/2026-10-09/QA.md). The previous `1.9.4` tag uses SDK `1.3.1`.
+Release `1.9.6` keeps Headline, Small and Icon Small in their compact layouts for both image and video ads, removing their automatic switch to Medium. It uses GMA Next-Gen SDK `1.5.0`.
+
+Release `1.9.5` includes the native interaction and layout fixes verified in [device QA](qa_reports/2026-10-09/QA.md). The earlier `1.9.4` tag uses SDK `1.3.1`.
 
 - **Minimum SDK**: 24 (Android 7.0)
 - **Compile SDK**: 37.2
@@ -86,7 +88,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.9.5")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.9.6")
 }
 ```
 
@@ -1136,7 +1138,7 @@ The sample app demonstrates:
 - **Adapters** - Runtime checks for Meta, Pangle, Vungle, Unity and InMobi, initialization status and Ad inspector.
 - **Validation** - Native validator remains enabled; ad load, impression and click callbacks are logged with `AdSampleQA`.
 
-Video ads in Headline, Small and Icon Small use the Medium media card instead of a compact image row. This supplies the SDK MediaView and leaves playback controls accessible. Full Width Media places its text and CTA below videos.
+Headline, Small and Icon Small keep their compact layouts for both image and video ads. Full Width Media places its text and CTA below videos.
 
 Open **Templates** to select a layout or change video/variant options. The panel collapses after selection so that the ad and its controls have more room; **Reload native** stays available.
 
