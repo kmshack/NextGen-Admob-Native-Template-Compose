@@ -50,6 +50,7 @@ private val MEDIA_SCRIM = Brush.verticalGradient(
  * - Large media/image display (280dp height)
  * - Gradient overlay for text readability
  * - Overlay CTA button for immediate action
+ * - Separate text and CTA below videos to keep SDK playback controls accessible
  * - Fallback layout when no media is available
  *
  * Best used for:
@@ -75,7 +76,9 @@ fun NativeAdFullWidthMediaBox(
         val media = rememberNativeAdMediaState(nativeAd)
 
         NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
-            if (media.hasMedia) {
+            if (media.mediaContent?.hasVideoContent == true) {
+                VideoLayout(nativeAd, media, ctaButtonColor, ctaTextColor)
+            } else if (media.hasMedia) {
                 MediaLayout(
                     nativeAd = nativeAd,
                     media = media,
@@ -88,6 +91,57 @@ fun NativeAdFullWidthMediaBox(
                     ctaButtonColor = ctaButtonColor,
                     ctaTextColor = ctaTextColor,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoLayout(
+    nativeAd: NativeAd,
+    media: NativeAdMediaState,
+    ctaButtonColor: Color,
+    ctaTextColor: Color,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF5F5F5))
+    ) {
+        NativeAdMediaContent(
+            state = media,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxWidth().height(FULL_WIDTH_MEDIA_HEIGHT)
+                .background(Color.Black),
+        )
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            NativeAdBadge(textColor = Color(0xFF555555), containerColor = Color(0xFFE0E0E0))
+            NativeAdHeadlineView(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                Text(
+                    text = nativeAd.headlineText(),
+                    color = Color(0xFF111111),
+                    fontSize = 20.sp,
+                    lineHeight = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            nativeAd.body?.takeIf { it.isNotBlank() }?.let { body ->
+                NativeAdBodyView(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                    Text(
+                        text = body,
+                        color = Color(0xFF666666),
+                        fontSize = 13.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            nativeAd.callToAction?.takeIf { it.isNotBlank() }?.let { callToAction ->
+                NativeAdCallToActionView(Modifier.padding(top = 12.dp)) {
+                    CallToActionButton(callToAction, ctaButtonColor, ctaTextColor)
+                }
             }
         }
     }
@@ -163,12 +217,14 @@ private fun MediaLayout(
                     .alpha(0.9f),
             )
 
-            NativeAdCallToActionView(modifier = Modifier.padding(top = 8.dp)) {
-                CallToActionButton(
-                    text = nativeAd.callToAction.orEmpty(),
-                    containerColor = ctaButtonColor,
-                    contentColor = ctaTextColor,
-                )
+            nativeAd.callToAction?.takeIf { it.isNotBlank() }?.let { callToAction ->
+                NativeAdCallToActionView(modifier = Modifier.padding(top = 8.dp)) {
+                    CallToActionButton(
+                        text = callToAction,
+                        containerColor = ctaButtonColor,
+                        contentColor = ctaTextColor,
+                    )
+                }
             }
         }
     }
@@ -232,13 +288,15 @@ private fun FallbackLayout(
             }
         }
 
-        NativeAdCallToActionView(modifier = Modifier.padding(top = 16.dp)) {
-            CallToActionButton(
-                text = nativeAd.callToAction.orEmpty(),
-                containerColor = ctaButtonColor,
-                contentColor = ctaTextColor,
-                showChevron = true,
-            )
+        nativeAd.callToAction?.takeIf { it.isNotBlank() }?.let { callToAction ->
+            NativeAdCallToActionView(modifier = Modifier.padding(top = 16.dp)) {
+                CallToActionButton(
+                    text = callToAction,
+                    containerColor = ctaButtonColor,
+                    contentColor = ctaTextColor,
+                    showChevron = true,
+                )
+            }
         }
     }
 }

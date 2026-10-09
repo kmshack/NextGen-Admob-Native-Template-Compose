@@ -6,7 +6,7 @@
 
 [![](https://jitpack.io/v/kmshack/NextGen-Admob-Native-Template-Compose.svg)](https://jitpack.io/#kmshack/NextGen-Admob-Native-Template-Compose)
 [![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=24)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 </div>
@@ -54,11 +54,13 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 
 ## Requirements
 
+The published `1.9.4` tag uses GMA Next-Gen SDK `1.3.1`. The versions below describe the current development checkout and sample QA build.
+
 - **Minimum SDK**: 24 (Android 7.0)
-- **Compile SDK**: 36+
-- **Kotlin**: 2.0.0+
-- **Jetpack Compose**: BOM 2025.06.00+
-- **GMA Next-Gen SDK**: 1.3.0+
+- **Compile SDK**: 37.2
+- **Kotlin / Compose compiler**: 2.4.21 (build toolchain)
+- **Jetpack Compose**: BOM 2026.09.00
+- **GMA Next-Gen SDK**: 1.5.0
 
 ---
 
@@ -84,7 +86,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.8.7")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.9.4")
 }
 ```
 
@@ -1044,7 +1046,7 @@ If you're migrating from the legacy Google Play Services Ads SDK, here are the k
 implementation("com.google.android.gms:play-services-ads:24.x.x")
 
 // Next-Gen SDK
-implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.3.0")
+implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.5.0")
 ```
 
 ### Initialization
@@ -1128,14 +1130,25 @@ cd NextGen-Admob-Native-Template-Compose
 
 The sample app demonstrates:
 
-- **All Eight Templates** - Headline, Small, Icon Small, Medium, Large, App Install, Content Feed, and Full Width Media layouts
-- **Auto Color Extraction** - Live demonstration of automatic color extraction from ad icons
-- **Live Ad Loading** - Using Google's test ad unit IDs
-- **Loading States** - Progress indicators while ads load
-- **Error Handling** - Graceful error messages when ads fail
-- **Material 3 Theming** - Modern, beautiful UI design
-- **Best Practices** - Production-ready implementation patterns
-- **CTR Optimization** - Premium template showcasing high-engagement design
+- **Native** - Eight templates, image/video test units, alternate styles and reload. Each placement owns a separate ad instance. The SDK view option provides a plain Android view for comparing rendering and clicks with the Compose templates.
+- **Banner** - Adaptive banner with reserved SDK height, including landscape and bottom insets.
+- **Fullscreen** - Interstitial show/reload controls and show/dismiss counters. App-open ads are suppressed while an interstitial is visible.
+- **Adapters** - Runtime checks for Meta, Pangle, Vungle, Unity and InMobi, initialization status and Ad inspector.
+- **Validation** - Native validator remains enabled; ad load, impression and click callbacks are logged with `AdSampleQA`.
+
+Video ads in Headline, Small and Icon Small use the Medium media card instead of a compact image row. This supplies the SDK MediaView and leaves playback controls accessible. Full Width Media places its text and CTA below videos.
+
+Open **Templates** to select a layout or change video/variant options. The panel collapses after selection so that the ad and its controls have more room; **Reload native** stays available.
+
+The sample includes the mediation networks used by the service apps. Google demo units serve Google test ads only; adapter presence and initialization do not prove network delivery. To inspect initialization for a registered mediation app while retaining demo ad units:
+
+```bash
+./gradlew :sample:installDebug \
+  -PsampleAdMobAppId=ca-app-pub-YOUR_PUBLISHER~YOUR_APP \
+  -PsampleTestDeviceIds=YOUR_DEVICE_HASH
+```
+
+Use numeric app IDs and the test-device hash reported by the SDK. Testing third-party delivery additionally requires mapped ad units and each network's test mode; this sample does not override demo ad units with production units.
 
 ### Test Ad Unit IDs
 
@@ -1155,12 +1168,12 @@ This library uses the following dependencies:
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
-| Jetpack Compose BOM | 2025.06.00 | Compose runtime and UI |
+| Jetpack Compose BOM | 2026.09.00 | Compose runtime and UI |
 | Material 3 | Compose BOM | Material Design components |
-| GMA Next-Gen SDK | 1.3.0 | AdMob SDK (Native, App Open) |
+| GMA Next-Gen SDK | 1.5.0 | AdMob SDK (Native, App Open, Banner, Interstitial) |
 | UMP SDK | 4.0.0 | User consent management (GDPR/CCPA) |
-| Lifecycle Process | 2.10.0 | Foreground/background detection |
-| Kotlinx Coroutines | 1.10.2 | Coroutines support |
+| Lifecycle Process | 2.11.0 | Foreground/background detection |
+| Kotlinx Coroutines | 1.11.0 | Coroutines support |
 | Palette KTX | 1.0.0 | Auto color extraction from images |
 
 ---

@@ -177,24 +177,26 @@ fun NativeAdAppInstallBox(
                         }
                     }
 
-                    NativeAdCallToActionView(modifier = Modifier.padding(start = 12.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(ctaButtonColor)
-                                .widthIn(min = 80.dp)
-                                .padding(horizontal = 18.dp, vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = nativeAd.callToAction ?: "Install",
-                                color = ctaTextColor,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                            )
+                    nativeAd.callToAction?.takeIf { it.isNotBlank() }?.let { callToAction ->
+                        NativeAdCallToActionView(modifier = Modifier.padding(start = 12.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(ctaButtonColor)
+                                    .widthIn(min = 80.dp)
+                                    .padding(horizontal = 18.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = callToAction,
+                                    color = ctaTextColor,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
                     }
                 }

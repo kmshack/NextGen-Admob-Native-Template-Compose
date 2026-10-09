@@ -26,7 +26,10 @@ internal fun NativeAd.iconImageUri(): Uri? =
 internal fun NativeAd.mediaContentWithImageFallback(): MediaContent? {
     val content = mediaContent ?: return null
     if (!content.hasVideoContent && content.mainImage == null) {
-        content.mainImage = image?.drawable ?: icon?.drawable
+        image?.drawable?.let { content.mainImage = it }
     }
-    return if (content.hasVideoContent || content.mainImage != null) content else null
+    // A mediated static ad can render its main image only through MediaView (Meta does this),
+    // without exposing a Drawable via mainImage or image. Preserve that media content so the
+    // adapter can populate its view; an app icon is not a replacement for the main creative.
+    return content
 }

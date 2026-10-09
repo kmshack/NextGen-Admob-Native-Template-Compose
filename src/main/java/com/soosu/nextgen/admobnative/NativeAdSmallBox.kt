@@ -34,6 +34,7 @@ private val THUMBNAIL_MAX_WIDTH = 120.dp
  * Compact horizontal template: headline, icon + advertiser line and a small thumbnail.
  *
  * The whole row acts as the call to action, so a tap anywhere opens the ad.
+ * Video creatives expand to a media card so the SDK player and its controls remain visible.
  *
  * @param nativeAd The native ad to display. Nothing is rendered while it is `null`.
  * @param modifier Compose modifier
@@ -49,6 +50,11 @@ fun NativeAdSmallBox(
 ) {
     Box(modifier = modifier) {
         if (nativeAd == null) return@Box
+
+        if (nativeAd.mediaContent?.hasVideoContent == true) {
+            NativeAdMediumBox(nativeAd, Modifier.fillMaxWidth(), backgroundColor, textColor)
+            return@Box
+        }
 
         val iconImage = rememberNativeAdImage(nativeAd.iconImageDrawable(), nativeAd.iconImageUri())
         val thumbnail =

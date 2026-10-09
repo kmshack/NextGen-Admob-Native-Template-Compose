@@ -67,9 +67,7 @@ fun NativeAdContentBox(
 
         val iconImage = rememberNativeAdImage(nativeAd.iconImageDrawable(), nativeAd.iconImageUri())
         val media = rememberNativeAdMediaState(nativeAd)
-        val descriptionColor = textColor.blendWith(backgroundColor, 0.3f)
         val sponsoredColor = textColor.blendWith(backgroundColor, 0.4f)
-        val description = nativeAd.body?.takeIf { nativeAd.headline != null && it != nativeAd.headline }
 
         NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -115,17 +113,20 @@ fun NativeAdContentBox(
                 }
 
                 nativeAd.body?.let { body ->
-                    Text(
-                        text = body,
-                        color = textColor,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
+                    NativeAdBodyView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 16.dp, top = 12.dp, end = 16.dp),
-                    )
+                    ) {
+                        Text(
+                            text = body,
+                            color = textColor,
+                            fontSize = 15.sp,
+                            lineHeight = 22.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
 
                 if (media.hasMedia) {
@@ -145,22 +146,6 @@ fun NativeAdContentBox(
                                 }
                             },
                     )
-                }
-
-                if (description != null) {
-                    NativeAdBodyView(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 10.dp, end = 16.dp)
-                    ) {
-                        Text(
-                            text = description,
-                            color = descriptionColor,
-                            fontSize = 13.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
 
                 NativeAdCallToActionView(

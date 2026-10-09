@@ -1,13 +1,21 @@
+buildscript {
+    dependencies {
+        // Override AGP's bundled compiler for the current Kotlin/Compose libraries.
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21")
+    }
+}
+
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("maven-publish")
 }
 
 android {
     namespace = "com.soosu.nextgen.admobnative"
-    compileSdk = 36
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
 
     defaultConfig {
         minSdk = 24
@@ -26,8 +34,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    publishing {
+        singleVariant("release")
     }
 
     buildFeatures {
@@ -37,7 +45,7 @@ android {
 
 dependencies {
     // Compose BOM
-    val composeBom = platform("androidx.compose:compose-bom:2025.06.00")
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     api(composeBom)
 
     // Compose
@@ -46,16 +54,16 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
 
     // Google AdMob Next-Gen SDK
-    api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.3.1")
+    api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.5.0")
 
     // UMP SDK
     api("com.google.android.ump:user-messaging-platform:4.0.0")
 
     // Lifecycle (포그라운드 감지)
-    api("androidx.lifecycle:lifecycle-process:2.10.0")
+    api("androidx.lifecycle:lifecycle-process:2.11.0")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // Palette for color extraction
     implementation("androidx.palette:palette-ktx:1.0.0")

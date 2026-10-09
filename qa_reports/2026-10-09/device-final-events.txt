@@ -1,0 +1,66 @@
+10-09 10:43:03.556 16448 16511 I AdSampleQA: Native impression: Full width video=false variant=false
+10-09 10:43:14.559 16448 16510 I AdSampleQA: Native impression: Medium video=false variant=false
+10-09 10:45:41.814 16448 16506 I AdSampleQA: Native impression: Medium video=false variant=false
+10-09 10:45:47.249 16448 16512 I AdSampleQA: Native clicked: Medium video=false variant=false
+10-09 10:45:57.551 16448 16512 I AdSampleQA: Native impression: Large video=false variant=false
+10-09 10:46:06.328 16448 16512 I AdSampleQA: Native clicked: Large video=false variant=false
+10-09 10:46:16.352 16448 16502 I AdSampleQA: Native impression: Full width video=false variant=false
+10-09 10:46:21.729 16448 16510 I AdSampleQA: Native clicked: Full width video=false variant=false
+10-09 10:46:31.847 16448 16512 I AdSampleQA: Native impression: Content video=false variant=false
+10-09 10:46:37.251 16448 16511 I AdSampleQA: Native clicked: Content video=false variant=false
+10-09 10:46:47.270 16448 16503 I AdSampleQA: Native impression: Install video=false variant=false
+10-09 10:47:53.721 16448 16506 I AdSampleQA: Native impression: Install video=false variant=false
+10-09 10:47:59.175 16448 16506 I AdSampleQA: Native clicked: Install video=false variant=false
+10-09 10:48:09.014 16448 16506 I AdSampleQA: Native impression: Headline video=false variant=false
+10-09 10:48:14.111 16448 16504 I AdSampleQA: Native clicked: Headline video=false variant=false
+10-09 10:48:24.196 16448 16502 I AdSampleQA: Native impression: Small video=false variant=false
+10-09 10:48:29.192 16448 16506 I AdSampleQA: Native clicked: Small video=false variant=false
+10-09 10:48:39.108 16448 16504 I AdSampleQA: Native impression: Icon video=false variant=false
+10-09 10:48:44.052 16448 16506 I AdSampleQA: Native clicked: Icon video=false variant=false
+10-09 10:48:55.589 16448 16503 I AdSampleQA: Native impression: Icon video=true variant=false
+10-09 10:49:06.903 16448 16503 I AdSampleQA: Native impression: Full width video=true variant=false
+10-09 10:49:11.355 16448 16512 I AdSampleQA: Native clicked: Full width video=true variant=false
+10-09 10:49:21.311 16448 16501 I AdSampleQA: Native impression: Content video=true variant=false
+10-09 10:49:26.076 16448 16502 I AdSampleQA: Native clicked: Content video=true variant=false
+10-09 10:49:35.940 16448 16512 I AdSampleQA: Native impression: Install video=true variant=false
+10-09 10:49:40.626 16448 16510 I AdSampleQA: Native clicked: Install video=true variant=false
+10-09 10:49:50.315 16448 16512 I AdSampleQA: Native impression: Headline video=true variant=false
+10-09 10:49:54.907 16448 16510 I AdSampleQA: Native clicked: Headline video=true variant=false
+10-09 10:50:04.651 16448 16511 I AdSampleQA: Native impression: Small video=true variant=false
+10-09 10:50:09.302 16448 16511 I AdSampleQA: Native clicked: Small video=true variant=false
+10-09 10:50:19.048 16448 16506 I AdSampleQA: Native impression: Icon video=true variant=false
+10-09 10:50:23.521 16448 16512 I AdSampleQA: Native clicked: Icon video=true variant=false
+10-09 10:50:33.060 16448 16511 I AdSampleQA: Native impression: Medium video=true variant=false
+10-09 10:50:37.605 16448 16503 I AdSampleQA: Native clicked: Medium video=true variant=false
+10-09 10:50:47.245 16448 16511 I AdSampleQA: Native impression: Large video=true variant=false
+10-09 10:50:51.927 16448 16503 I AdSampleQA: Native clicked: Large video=true variant=false
+10-09 10:52:19.124 16448 16502 I AdSampleQA: Native impression: Large video=true variant=false
+10-09 10:52:30.302 16448 16506 I AdSampleQA: Banner impression
+10-09 10:53:40.334 16448 16510 I AdSampleQA: Banner impression
+10-09 10:53:47.148 16448 16506 I AdSampleQA: Banner impression
+10-09 10:53:53.776 16448 16510 I AdSampleQA: Banner impression
+10-09 10:54:47.930 16448 16506 I AdSampleQA: Banner clicked
+10-09 10:54:50.671 16448 16506 I AdSampleQA: Banner impression
+10-09 10:56:00.712 16448 16506 I AdSampleQA: Banner impression
+10-09 10:57:10.744 16448 16511 I AdSampleQA: Banner impression
+10-09 10:58:20.792 16448 16504 I AdSampleQA: Banner impression
+10-09 10:59:01.116 16448 16512 I AdSampleQA: Interstitial showed
+10-09 10:59:01.146 16448 16501 I AdSampleQA: Interstitial impression
+10-09 10:59:26.565 16448 16502 I AdSampleQA: Interstitial dismissed
+10-09 10:59:33.243 16448 16512 I AdSampleQA: Interstitial showed
+10-09 10:59:33.278 16448 16501 I AdSampleQA: Interstitial impression
+10-09 11:00:36.186 16448 16510 I AdSampleQA: Interstitial dismissed
+10-09 11:00:42.970 16448 16502 I AdSampleQA: Interstitial showed
+10-09 11:00:43.002 16448 16510 I AdSampleQA: Interstitial impression
+10-09 11:01:08.374 16448 16510 I AdSampleQA: Interstitial dismissed
+10-09 11:01:23.672 16448 16448 I AdSampleQA: Meta 6.22.0.1: present
+10-09 11:01:23.672 16448 16448 I AdSampleQA: Pangle 8.3.0.4.0: present
+10-09 11:01:23.672 16448 16448 I AdSampleQA: Vungle 7.7.8.1: present
+10-09 11:01:23.672 16448 16448 I AdSampleQA: Unity 4.21.0.0: present
+10-09 11:01:23.672 16448 16448 I AdSampleQA: InMobi 11.5.0.0: present
+10-09 11:04:32.319 16448 16503 I AdSampleQA: Ad inspector closed: null
+10-09 11:05:03.113 16448 16503 I AdSampleQA: Native impression: Full width video=false variant=false
+10-09 11:05:14.045 16448 16510 I AdSampleQA: Native impression: Full width video=false variant=false
+10-09 11:06:40.196 16448 16503 I AdSampleQA: Native impression: Full width video=true variant=false
+10-09 11:07:38.801 16448 16501 I AdSampleQA: Native clicked: Full width video=true variant=false
+10-09 11:07:43.751 16448 16510 I AdSampleQA: Native impression: Full width video=true variant=false

@@ -1,0 +1,35 @@
+shell getprop ro.product.model
+Pixel 9
+
+shell getprop ro.build.version.release
+17
+
+shell getprop ro.build.version.sdk
+37
+
+shell wm size
+Physical size: 1080x2424
+
+shell wm density
+Physical density: 420
+Override density: 460
+
+shell settings get system font_scale
+1.0
+
+shell settings get system accelerometer_rotation
+1
+
+shell settings get system user_rotation
+0
+
+shell cmd window user-rotation
+free
+
+shell pidof com.soosu.nextgen.admobnative.sample
+16448
+
+    topResumedActivity=ActivityRecord{258699344 u0 com.soosu.nextgen.admobnative.sample/.MainActivity t127}
+versionCode=101000 minSdk=24 targetSdk=36
+versionName=1.1.5
+installed APK SHA256 862285210fbb6acad2424626710c886f45613d4b3ecbfb00836ac3140832ac43

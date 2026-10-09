@@ -150,25 +150,27 @@ fun NativeAdLargeBox(
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 20.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(ctaButtonColor)
-                            .heightIn(min = 52.dp)
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = nativeAd.callToAction.orEmpty(),
-                            color = ctaTextColor,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                        )
+                    nativeAd.callToAction?.takeIf { it.isNotBlank() }?.let { callToAction ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 20.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(ctaButtonColor)
+                                .heightIn(min = 52.dp)
+                                .padding(horizontal = 20.dp, vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = callToAction,
+                                color = ctaTextColor,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
                 }
             }

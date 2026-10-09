@@ -1,0 +1,194 @@
+[
+  {
+    "mode": "image",
+    "template": "Medium",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{146677068 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:45:41.814 16448 16506 I AdSampleQA: Native impression: Medium video=false variant=false",
+      "10-09 10:45:47.249 16448 16512 I AdSampleQA: Native clicked: Medium video=false variant=false"
+    ]
+  },
+  {
+    "mode": "image",
+    "template": "Large",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{18785608 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:45:57.551 16448 16512 I AdSampleQA: Native impression: Large video=false variant=false",
+      "10-09 10:46:06.328 16448 16512 I AdSampleQA: Native clicked: Large video=false variant=false"
+    ]
+  },
+  {
+    "mode": "image",
+    "template": "Full width",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{178920047 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:46:16.352 16448 16502 I AdSampleQA: Native impression: Full width video=false variant=false",
+      "10-09 10:46:21.729 16448 16510 I AdSampleQA: Native clicked: Full width video=false variant=false"
+    ]
+  },
+  {
+    "mode": "image",
+    "template": "Content",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{219794829 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:46:31.847 16448 16512 I AdSampleQA: Native impression: Content video=false variant=false",
+      "10-09 10:46:37.251 16448 16511 I AdSampleQA: Native clicked: Content video=false variant=false"
+    ]
+  },
+  {
+    "mode": "image",
+    "template": "Install",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{231273811 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:47:53.721 16448 16506 I AdSampleQA: Native impression: Install video=false variant=false",
+      "10-09 10:47:59.175 16448 16506 I AdSampleQA: Native clicked: Install video=false variant=false"
+    ]
+  },
+  {
+    "mode": "image",
+    "template": "Headline",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{152876096 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:48:09.014 16448 16506 I AdSampleQA: Native impression: Headline video=false variant=false",
+      "10-09 10:48:14.111 16448 16504 I AdSampleQA: Native clicked: Headline video=false variant=false"
+    ]
+  },
+  {
+    "mode": "image",
+    "template": "Small",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{149006064 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:48:24.196 16448 16502 I AdSampleQA: Native impression: Small video=false variant=false",
+      "10-09 10:48:29.192 16448 16506 I AdSampleQA: Native clicked: Small video=false variant=false"
+    ]
+  },
+  {
+    "mode": "image",
+    "template": "Icon",
+    "actualVideo": false,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{44830088 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:48:39.108 16448 16504 I AdSampleQA: Native impression: Icon video=false variant=false",
+      "10-09 10:48:44.052 16448 16506 I AdSampleQA: Native clicked: Icon video=false variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Full width",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{161060117 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:49:06.903 16448 16503 I AdSampleQA: Native impression: Full width video=true variant=false",
+      "10-09 10:49:11.355 16448 16512 I AdSampleQA: Native clicked: Full width video=true variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Content",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{131063650 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:49:21.311 16448 16501 I AdSampleQA: Native impression: Content video=true variant=false",
+      "10-09 10:49:26.076 16448 16502 I AdSampleQA: Native clicked: Content video=true variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Install",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{4782480 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:49:35.940 16448 16512 I AdSampleQA: Native impression: Install video=true variant=false",
+      "10-09 10:49:40.626 16448 16510 I AdSampleQA: Native clicked: Install video=true variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Headline",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{215064390 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:49:50.315 16448 16512 I AdSampleQA: Native impression: Headline video=true variant=false",
+      "10-09 10:49:54.907 16448 16510 I AdSampleQA: Native clicked: Headline video=true variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Small",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{252582364 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:50:04.651 16448 16511 I AdSampleQA: Native impression: Small video=true variant=false",
+      "10-09 10:50:09.302 16448 16511 I AdSampleQA: Native clicked: Small video=true variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Icon",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{228172684 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:50:19.048 16448 16506 I AdSampleQA: Native impression: Icon video=true variant=false",
+      "10-09 10:50:23.521 16448 16512 I AdSampleQA: Native clicked: Icon video=true variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Medium",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{191319851 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:50:33.060 16448 16511 I AdSampleQA: Native impression: Medium video=true variant=false",
+      "10-09 10:50:37.605 16448 16503 I AdSampleQA: Native clicked: Medium video=true variant=false"
+    ]
+  },
+  {
+    "mode": "video",
+    "template": "Large",
+    "actualVideo": true,
+    "validator": "green",
+    "click": true,
+    "destination": "ActivityRecord{5215235 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+    "events": [
+      "10-09 10:50:47.245 16448 16511 I AdSampleQA: Native impression: Large video=true variant=false",
+      "10-09 10:50:51.927 16448 16503 I AdSampleQA: Native clicked: Large video=true variant=false"
+    ]
+  }
+]

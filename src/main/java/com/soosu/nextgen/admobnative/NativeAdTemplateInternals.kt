@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +17,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.ImageView
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaContent
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
@@ -104,16 +105,24 @@ internal fun NativeAdIconAsset(
     modifier: Modifier = Modifier,
 ) {
     if (image == null) return
-    NativeAdIconView(modifier = modifier.size(size)) {
-        Image(
-            bitmap = image,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape),
-        )
-    }
+    val nativeAdView = LocalNativeAdView.current
+        ?: error("NativeAdIconAsset requires NativeAdView")
+    // Meta Native Banner validates the registered icon's concrete class and will not track
+    // impressions for a ComposeView, even when it contains a correctly rendered Compose Image.
+    AndroidView(
+        factory = { context ->
+            ImageView(context).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
+        },
+        modifier = modifier.size(size).clip(shape),
+        update = { view ->
+            view.setImageBitmap(image.asAndroidBitmap())
+            nativeAdView.iconView = view
+        },
+        onRelease = { view ->
+            if (nativeAdView.iconView === view) nativeAdView.iconView = null
+            view.setImageDrawable(null)
+        },
+    )
 }
 
 /** The media assets of an ad: a video/media view when available, otherwise a static image. */
@@ -179,7 +188,10 @@ internal fun NativeAdMediaContent(
     when {
         state.mediaContent != null -> NativeAdMediaView(
             modifier = modifier,
-            scaleType = scaleType,
+            // Compose's ContentScale only affects the fallback Image. The SDK MediaView needs
+            // its equivalent ImageView scale type as well, otherwise these two paths look
+            // different for the same template (notably the full-width cropped hero).
+            scaleType = scaleType ?: contentScale.toMediaViewScaleType(),
             mediaContent = state.mediaContent,
         )
         state.fallbackImage != null -> Image(
@@ -189,6 +201,16 @@ internal fun NativeAdMediaContent(
             modifier = modifier,
         )
     }
+}
+
+internal fun ContentScale.toMediaViewScaleType(): ImageView.ScaleType = when (this) {
+    ContentScale.Crop -> ImageView.ScaleType.CENTER_CROP
+    ContentScale.FillBounds -> ImageView.ScaleType.FIT_XY
+    ContentScale.None -> ImageView.ScaleType.CENTER
+    ContentScale.Inside -> ImageView.ScaleType.CENTER_INSIDE
+    // FillWidth/FillHeight are used with a container measured to the creative's aspect ratio,
+    // where FIT_CENTER has the same result and does not distort the image.
+    else -> ImageView.ScaleType.FIT_CENTER
 }
 
 /** A five star rating with half star steps, mirroring the small `RatingBar` of the old templates. */

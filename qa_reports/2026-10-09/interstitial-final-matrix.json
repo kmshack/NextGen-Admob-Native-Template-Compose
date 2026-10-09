@@ -1,0 +1,20 @@
+{
+  "pid": 16448,
+  "shown": 3,
+  "impressions": 3,
+  "dismissed": 3,
+  "events": [
+    "10-09 10:59:01.116 16448 16512 I AdSampleQA: Interstitial showed",
+    "10-09 10:59:01.146 16448 16501 I AdSampleQA: Interstitial impression",
+    "10-09 10:59:26.565 16448 16502 I AdSampleQA: Interstitial dismissed",
+    "10-09 10:59:33.243 16448 16512 I AdSampleQA: Interstitial showed",
+    "10-09 10:59:33.278 16448 16501 I AdSampleQA: Interstitial impression",
+    "10-09 11:00:36.186 16448 16510 I AdSampleQA: Interstitial dismissed",
+    "10-09 11:00:42.970 16448 16502 I AdSampleQA: Interstitial showed",
+    "10-09 11:00:43.002 16448 16510 I AdSampleQA: Interstitial impression",
+    "10-09 11:01:08.374 16448 16510 I AdSampleQA: Interstitial dismissed"
+  ],
+  "backgroundReturn": "same SDK AdActivity; no app-open overlay observed",
+  "rotation": "SDK retains portrait; Close bounds [974,207][1046,281]",
+  "rapidReload": "Loading interstitial; Show button parent enabled=false"
+}

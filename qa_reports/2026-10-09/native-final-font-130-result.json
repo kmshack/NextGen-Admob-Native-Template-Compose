@@ -1,0 +1,10 @@
+{
+  "fontScale": 1.3,
+  "template": "Full width",
+  "video": true,
+  "validator": "green",
+  "destination": "ActivityRecord{22403171 u0 com.android.vending/com.google.android.finsky.transparentmainactivity.HsdpAlias t127}",
+  "events": [
+    "10-09 11:07:38.801 16448 16501 I AdSampleQA: Native clicked: Full width video=true variant=false"
+  ]
+}

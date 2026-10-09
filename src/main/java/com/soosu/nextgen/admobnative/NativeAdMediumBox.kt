@@ -29,7 +29,7 @@ import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 /**
  * Full featured card template: headline, advertiser line, inline call to action, body and media.
  *
- * The whole card acts as the call to action, so a tap anywhere opens the ad.
+ * Asset taps are handled by the SDK; the CTA registers only its own row.
  *
  * @param nativeAd The native ad to display. Nothing is rendered while it is `null`.
  * @param modifier Compose modifier
@@ -50,114 +50,116 @@ fun NativeAdMediumBox(
         val media = rememberNativeAdMediaState(nativeAd)
 
         NativeAdView(nativeAd = nativeAd, modifier = Modifier.fillMaxWidth()) {
-            NativeAdCallToActionView(modifier = Modifier.fillMaxWidth()) {
-                Column(
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor)
+                    .heightIn(min = 80.dp)
+            ) {
+                NativeAdHeadlineView(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(backgroundColor)
-                        .heightIn(min = 80.dp)
+                        .padding(start = 16.dp, top = 20.dp, end = 16.dp)
                 ) {
-                    NativeAdHeadlineView(
+                    Text(
+                        text = nativeAd.headline.orEmpty(),
+                        color = textColor,
+                        fontSize = 15.sp,
+                        lineHeight = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, top = 2.dp, end = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    NativeAdIconAsset(
+                        image = iconImage,
+                        size = 16.dp,
+                        shape = RoundedCornerShape(8.dp),
+                    )
+
+                    NativeAdBadge(
+                        textColor = textColor,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 20.dp, end = 16.dp)
-                    ) {
-                        Text(
-                            text = nativeAd.headline.orEmpty(),
-                            color = textColor,
-                            fontSize = 15.sp,
-                            lineHeight = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                            .padding(start = 4.dp, end = 4.dp)
+                            .alpha(0.8f),
+                    )
 
-                    Row(
+                    Text(
+                        text = nativeAd.secondaryText(),
+                        color = textColor,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 2.dp, end = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        NativeAdIconAsset(
-                            image = iconImage,
-                            size = 16.dp,
-                            shape = RoundedCornerShape(8.dp),
-                        )
+                            .weight(1f)
+                            .alpha(0.8f),
+                    )
+                }
 
-                        NativeAdBadge(
-                            textColor = textColor,
-                            modifier = Modifier
-                                .padding(start = 4.dp, end = 4.dp)
-                                .alpha(0.8f),
-                        )
-
-                        Text(
-                            text = nativeAd.secondaryText(),
-                            color = textColor,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .alpha(0.8f),
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = nativeAd.callToAction.orEmpty(),
-                            color = textColor,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-
-                        Icon(
-                            painter = painterResource(R.drawable.round_chevron_right_24),
-                            contentDescription = null,
-                            tint = textColor,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-
-                    nativeAd.body?.let { body ->
-                        NativeAdBodyView(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, top = 8.dp, end = 16.dp)
+                nativeAd.callToAction?.takeIf { it.isNotBlank() }?.let { callToAction ->
+                    NativeAdCallToActionView {
+                        Row(
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = body,
+                                text = callToAction,
                                 color = textColor,
-                                fontSize = 13.sp,
-                                lineHeight = 19.sp,
-                                maxLines = 3,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
+                            )
+
+                            Icon(
+                                painter = painterResource(R.drawable.round_chevron_right_24),
+                                contentDescription = null,
+                                tint = textColor,
+                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }
+                }
 
-                    if (media.hasMedia) {
-                        NativeAdMediaContent(
-                            state = media,
-                            contentScale = ContentScale.FillWidth,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 20.dp)
-                                .let {
-                                    if (media.mediaContent != null) {
-                                        it.aspectRatio(media.aspectRatio)
-                                    } else {
-                                        it
-                                    }
-                                },
+                nativeAd.body?.let { body ->
+                    NativeAdBodyView(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, top = 8.dp, end = 16.dp)
+                    ) {
+                        Text(
+                            text = body,
+                            color = textColor,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
+                }
+
+                if (media.hasMedia) {
+                    NativeAdMediaContent(
+                        state = media,
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 1.dp, end = 1.dp, top = 20.dp, bottom = 1.dp)
+                            .let {
+                                if (media.mediaContent != null) {
+                                    it.aspectRatio(media.aspectRatio)
+                                } else {
+                                    it
+                                }
+                            },
+                    )
                 }
             }
         }

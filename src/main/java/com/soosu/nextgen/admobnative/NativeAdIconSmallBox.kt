@@ -25,6 +25,7 @@ import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
  * Icon focused compact template, ideal for content feeds and list rows.
  *
  * The whole row acts as the call to action, so a tap anywhere opens the ad.
+ * Video creatives expand to a media card so the SDK player and its controls remain visible.
  *
  * @param nativeAd The native ad to display. Nothing is rendered while it is `null`.
  * @param modifier Compose modifier
@@ -40,6 +41,11 @@ fun NativeAdIconSmallBox(
 ) {
     Box(modifier = modifier) {
         if (nativeAd == null) return@Box
+
+        if (nativeAd.mediaContent?.hasVideoContent == true) {
+            NativeAdMediumBox(nativeAd, Modifier.fillMaxWidth(), backgroundColor, textColor)
+            return@Box
+        }
 
         val iconImage = rememberNativeAdImage(nativeAd.iconImageDrawable(), nativeAd.iconImageUri())
 

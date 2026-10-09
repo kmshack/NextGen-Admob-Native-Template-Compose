@@ -1,0 +1,1 @@
+    topResumedActivity=ActivityRecord{174229896 u0 com.soosu.nextgen.admobnative.sample/com.google.android.libraries.ads.mobile.sdk.common.AdActivity t127}

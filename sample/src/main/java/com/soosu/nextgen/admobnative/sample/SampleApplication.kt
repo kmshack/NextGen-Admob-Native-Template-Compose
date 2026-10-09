@@ -1,6 +1,9 @@
 package com.soosu.nextgen.admobnative.sample
 
 import android.app.Application
+import com.google.android.libraries.ads.mobile.sdk.MobileAds
+import com.google.android.libraries.ads.mobile.sdk.common.RequestConfiguration
+import com.soosu.nextgen.admobnative.AdmobInitializer
 import com.soosu.nextgen.admobnative.AdmobConfig
 import com.soosu.nextgen.admobnative.AppOpenAdLifecycleObserver
 import com.soosu.nextgen.admobnative.AppOpenAdManager
@@ -8,6 +11,8 @@ import com.soosu.nextgen.admobnative.NativeAdLoadManager
 import com.soosu.nextgen.admobnative.createNativeAdRequestWithDefaults
 
 class SampleApplication : Application() {
+
+    var fullScreenAdVisible = false
 
     lateinit var admobConfig: AdmobConfig
         private set
@@ -22,7 +27,7 @@ class SampleApplication : Application() {
         super.onCreate()
 
         // 1. AdmobConfig 설정
-        admobConfig = AdmobConfig.Builder(TEST_APP_ID)
+        admobConfig = AdmobConfig.Builder(BuildConfig.QA_APP_ID)
             .splashAdUnitId(TEST_APP_OPEN_AD_UNIT_ID)
             .foregroundAdUnitId(TEST_APP_OPEN_AD_UNIT_ID)
             .consentTimeoutMs(5_000)
@@ -30,14 +35,21 @@ class SampleApplication : Application() {
             .foregroundAdCooldownMs(30_000)
             .foregroundAdShowIntervalMs(10_000)
             .preloadOnBackground(true)
-            .shouldSuppressAds { false /* isPremiumUser() 등 조건 */ }
+            .shouldSuppressAds { fullScreenAdVisible /* or isPremiumUser() */ }
             .debugLogging(true)
-            // 디버그 빌드에서 뜨는 네이티브 광고 validator 오버레이를 끕니다.
-            .nativeValidatorDisabled(true)
+            // Keep the validator active during device QA.
+            .nativeValidatorDisabled(false)
             .build()
 
         // 2. AppOpenAdManager 생성
         appOpenAdManager = AppOpenAdManager(admobConfig)
+
+        AdmobInitializer.whenInitialized {
+            val ids = BuildConfig.QA_TEST_DEVICE_IDS.split(',').filter { it.isNotBlank() }
+            if (ids.isNotEmpty()) {
+                MobileAds.setRequestConfiguration(RequestConfiguration.Builder().setTestDeviceIds(ids).build())
+            }
+        }
 
         // 3. 네이티브 광고 풀 등록 및 시작
         // start()는 SDK 초기화 전에 호출해도 예약되었다가 초기화 완료 시 자동
@@ -46,9 +58,14 @@ class SampleApplication : Application() {
             register(
                 key = NATIVE_FEED_POOL,
                 request = createNativeAdRequestWithDefaults(TEST_NATIVE_AD_UNIT_ID),
-                bufferSize = 8,
+                bufferSize = 1,
             )
             start(NATIVE_FEED_POOL)
+            register(
+                key = NATIVE_VIDEO_POOL,
+                request = createNativeAdRequestWithDefaults(TEST_NATIVE_VIDEO_AD_UNIT_ID),
+                bufferSize = 1,
+            )
         }
 
         // 4. 포그라운드 광고 라이프사이클 옵저버 등록
@@ -67,6 +84,10 @@ class SampleApplication : Application() {
         const val TEST_APP_ID = "ca-app-pub-3940256099942544~3347511713"
         const val TEST_APP_OPEN_AD_UNIT_ID = "ca-app-pub-3940256099942544/9257395921"
         const val TEST_NATIVE_AD_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
+        const val TEST_NATIVE_VIDEO_AD_UNIT_ID = "ca-app-pub-3940256099942544/1044960115"
+        const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"
+        const val TEST_INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
         const val NATIVE_FEED_POOL = "sample-native-feed"
+        const val NATIVE_VIDEO_POOL = "sample-native-video"
     }
 }

@@ -35,7 +35,7 @@ import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView as SdkN
  * Compose bindings for the GMA Next-Gen native ad view.
  *
  * These composables follow the official Next-Gen Compose sample (`NativeComposeFragment` /
- * `NativeComposableUtility` in googleads/gma-next-gen-sdk-android-examples): every ad asset is
+ * `NativeComposeUtility` in googleads/gma-next-gen-sdk-android-examples): every ad asset is
  * declared as a composable, and each asset composable registers itself with the enclosing
  * NativeAdView so the SDK can track impressions and clicks.
  *
@@ -84,7 +84,7 @@ fun NativeAdView(
             val composeView = ComposeView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
+                    ViewGroup.LayoutParams.MATCH_PARENT
                 )
             }
             SdkNativeAdView(context).apply {
@@ -97,6 +97,13 @@ fun NativeAdView(
             }
         },
         modifier = modifier,
+        onRelease = { adView ->
+            // AndroidView releases the container when this placement leaves composition. Stop
+            // the nested Compose assets first, then release the SDK's view resources. The caller
+            // continues to own the NativeAd itself and decides when to destroy that ad.
+            (adView.getChildAt(0) as? ComposeView)?.disposeComposition()
+            adView.destroy()
+        },
         update = { adView ->
             // The child was added by the factory, so it is always a ComposeView.
             val composeView = adView.getChildAt(0) as? ComposeView
@@ -121,15 +128,13 @@ fun NativeAdView(
     DisposableEffect(currentNativeAd, currentNativeAdView, currentMediaView) {
         // Re-register whenever the ad, the container or the media view changes: the asset views are
         // created asynchronously by the nested composition, so registration has to be re-attempted.
-        val registerRunnable = currentNativeAdView?.registerWhenLaidOut(
+        val cancelRegistration = currentNativeAdView?.registerWhenLaidOut(
             currentNativeAd,
             currentMediaView,
         )
 
         onDispose {
-            if (registerRunnable != null) {
-                (currentMediaView ?: currentNativeAdView)?.removeCallbacks(registerRunnable)
-            }
+            cancelRegistration?.invoke()
         }
     }
 }
@@ -277,12 +282,20 @@ fun NativeAdMediaView(
     mediaContent: MediaContent? = null,
 ) {
     val registerMediaView = LocalMediaViewRegister.current
+    val appliedMediaContent = remember { arrayOfNulls<MediaContent>(1) }
     AndroidView(
         factory = { context -> MediaView(context) },
         modifier = modifier,
         update = { view ->
             registerMediaView(view)
-            mediaContent?.let { view.mediaContent = it }
+            // Bind each content instance once. After registration, the SDK owns the player
+            // and its interaction state; unrelated recompositions must not reset the media.
+            mediaContent?.let {
+                if (appliedMediaContent[0] !== it) {
+                    view.mediaContent = it
+                    appliedMediaContent[0] = it
+                }
+            }
             scaleType?.let { view.imageScaleType = it }
         },
     )
@@ -328,6 +341,7 @@ private fun NativeAdAssetView(
     AndroidView(
         factory = { context -> ComposeView(context) },
         modifier = modifier,
+        onRelease = { view -> view.disposeComposition() },
         update = { view ->
             register(nativeAdView, view)
             view.setContent {
@@ -361,15 +375,36 @@ private fun textStyleWithoutFontPadding(): TextStyle {
 /**
  * Registers the ad once the asset views hosted in the nested composition have been laid out.
  *
- * Posting matters for the media view in particular: the SDK validates that it is at least 120x120,
- * which fails while the view is still 0x0.
+ * Asset ComposeViews have their own composition/layout pass. Wait for their measurements rather
+ * than registering a 0x0 view. Bound retries so an incomplete custom layout still reaches the
+ * SDK validator instead of polling forever.
  */
 private fun SdkNativeAdView.registerWhenLaidOut(
     nativeAd: NativeAd,
     mediaView: MediaView?,
-): Runnable {
-    val anchor = mediaView ?: this
-    val runnable = Runnable { registerNativeAd(nativeAd, mediaView) }
-    anchor.post(runnable)
-    return runnable
+): () -> Unit {
+    var cancelled = false
+    var attempts = 0
+    val runnable = object : Runnable {
+        override fun run() {
+            if (cancelled) return
+            val assets = listOfNotNull(
+                headlineView, bodyView, callToActionView, iconView,
+                advertiserView, priceView, starRatingView, storeView,
+                mediaView,
+            )
+            if (attempts++ < 30 && (!isLaidOut || headlineView == null || assets.any {
+                    !it.isLaidOut || it.width == 0 || it.height == 0
+                })) {
+                postOnAnimation(this)
+                return
+            }
+            registerNativeAd(nativeAd, mediaView)
+        }
+    }
+    postOnAnimation(runnable)
+    return {
+        cancelled = true
+        removeCallbacks(runnable)
+    }
 }
