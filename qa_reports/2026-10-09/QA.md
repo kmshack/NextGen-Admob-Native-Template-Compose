@@ -96,6 +96,6 @@ Next-Gen과 중복되는 legacy `play-services-ads` / `ads-lite`는 어댑터 �
 - 샘플 Release APK는 unsigned QA 빌드이며 배포용 서명 APK가 아니다.
 - `git diff --check` — 통과.
 - 기존 `1.9.4` 커밋·푸시·태그는 `3a51a2d981f4706b6af040b4ae39a911f9595647` / SDK 1.3.1이다. 원격 main과 태그의 대상 커밋을 다시 확인했다.
-- 최신 의존성 갱신과 QA 수정은 기존 `1.9.4` 이후의 개발 변경으로 main에 반영한다. 기존 `1.9.4` 태그는 변경하지 않는다. POM 버전 값은 아직 1.9.4이므로 다음 태그 릴리스 전에 새 버전으로 구분해야 한다.
+- 최신 의존성 갱신과 QA 수정은 `b6b451d`로 main에 반영했다. 후속 릴리스 `1.9.5`에서 Maven publication 버전과 설치 안내를 올리고 같은 이름의 태그로 배포한다. 기존 `1.9.4` 태그는 유지한다.
 
 기기 설정 복구 및 설치 APK 일치 여부는 [기기 상태](device-final-state.txt), 주요 광고 콜백은 [이벤트 기록](device-final-events.txt)에 보관했다. 빌드와 전체 logcat 원본은 같은 폴더의 Git 제외된 `.log` 파일로 남아 있다.

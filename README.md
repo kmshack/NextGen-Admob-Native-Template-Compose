@@ -54,7 +54,7 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 
 ## Requirements
 
-The published `1.9.4` tag uses GMA Next-Gen SDK `1.3.1`. The versions below describe the current development checkout and sample QA build.
+Release `1.9.5` includes GMA Next-Gen SDK `1.5.0` and the native interaction and layout fixes verified in [device QA](qa_reports/2026-10-09/QA.md). The previous `1.9.4` tag uses SDK `1.3.1`.
 
 - **Minimum SDK**: 24 (Android 7.0)
 - **Compile SDK**: 37.2
@@ -86,7 +86,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.9.4")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.9.5")
 }
 ```
 
