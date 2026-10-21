@@ -2,6 +2,7 @@ package com.soosu.nextgen.admobnative
 
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import com.google.android.libraries.ads.mobile.sdk.common.Image
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaContent
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 
@@ -14,14 +15,16 @@ internal fun NativeAd.primaryImageUri(): Uri? =
     image?.uri
         ?: icon?.uri
 
-internal fun NativeAd.iconImageDrawable(): Drawable? =
-    icon?.drawable
-        ?: image?.drawable
-        ?: mediaContent?.mainImage
+/** Keep the drawable and URI tied to the same asset, including URI-only mediated icons. */
+internal fun NativeAd.iconImageAsset(): Image? = icon ?: image
+
+internal fun NativeAd.iconImageDrawable(): Drawable? {
+    val asset = iconImageAsset()
+    return if (asset != null) asset.drawable else mediaContent?.mainImage
+}
 
 internal fun NativeAd.iconImageUri(): Uri? =
-    icon?.uri
-        ?: image?.uri
+    iconImageAsset()?.uri
 
 internal fun NativeAd.mediaContentWithImageFallback(): MediaContent? {
     val content = mediaContent ?: return null

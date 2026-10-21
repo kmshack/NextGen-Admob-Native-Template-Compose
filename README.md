@@ -54,6 +54,8 @@ NextGen AdMob Native Template Compose provides ready-to-use, fully customizable 
 
 ## Requirements
 
+Release `1.9.7` re-registers native assets when asynchronous icons arrive, preserves replacement asset bindings, and uses the actual app icon in Headline. Icon drawable/URI fallbacks now stay tied to the same asset. It uses GMA Next-Gen SDK `1.5.0`.
+
 Release `1.9.6` keeps Headline, Small and Icon Small in their compact layouts for both image and video ads, removing their automatic switch to Medium. It uses GMA Next-Gen SDK `1.5.0`.
 
 Release `1.9.5` includes the native interaction and layout fixes verified in [device QA](qa_reports/2026-10-09/QA.md). The earlier `1.9.4` tag uses SDK `1.3.1`.
@@ -88,7 +90,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.9.6")
+    implementation("com.github.kmshack:NextGen-Admob-Native-Template-Compose:1.9.7")
 }
 ```
 
@@ -464,7 +466,7 @@ NativeAdMediumBox(
 **Features:**
 - Ultra-compact design
 - Horizontally centered in the space it is given
-- Headline only with small icon, which can be turned off
+- Headline with a small app icon, which can be turned off for compatible ad sources
 - Minimal visual footprint
 - Great for toolbars or between content sections
 
@@ -474,7 +476,7 @@ NativeAdHeadlineBox(
     modifier = Modifier.fillMaxWidth()
 )
 
-// Text only: the image is neither rendered nor downloaded
+// Text only: use only with sources that support icon-free layouts (not Meta Native Banner).
 NativeAdHeadlineBox(
     nativeAd = nativeAd,
     modifier = Modifier.fillMaxWidth(),
@@ -484,7 +486,12 @@ NativeAdHeadlineBox(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `showImage` | `Boolean` | `true` | Show the ad image between the "AD" badge and the headline |
+| `showImage` | `Boolean` | `true` | Show the app icon between the "AD" badge and the headline |
+
+Meta Native Banner requires its app icon rendered in an `ImageView` for impressions to be
+recorded, so keep `showImage = true` for those ads. Meta's full Native format requires a
+`MediaView`; configure the Meta placement as Native Banner for this compact template.
+See [Meta's asset rendering requirements](https://developers.google.com/admob/android/next-gen/mediation/meta#impression_and_click_tracking).
 
 ### 5. Large Template - `NativeAdLargeBox`
 

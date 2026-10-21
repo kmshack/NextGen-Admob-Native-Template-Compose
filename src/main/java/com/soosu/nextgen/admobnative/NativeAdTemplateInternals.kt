@@ -107,6 +107,8 @@ internal fun NativeAdIconAsset(
     if (image == null) return
     val nativeAdView = LocalNativeAdView.current
         ?: error("NativeAdIconAsset requires NativeAdView")
+    val assetRegistry = LocalNativeAdAssetRegistry.current
+        ?: error("NativeAdIconAsset requires NativeAdView")
     // Meta Native Banner validates the registered icon's concrete class and will not track
     // impressions for a ComposeView, even when it contains a correctly rendered Compose Image.
     AndroidView(
@@ -116,10 +118,10 @@ internal fun NativeAdIconAsset(
         modifier = modifier.size(size).clip(shape),
         update = { view ->
             view.setImageBitmap(image.asAndroidBitmap())
-            nativeAdView.iconView = view
+            assetRegistry.register("icon", view) { nativeAdView.iconView = view }
         },
         onRelease = { view ->
-            if (nativeAdView.iconView === view) nativeAdView.iconView = null
+            assetRegistry.unregister("icon", view) { nativeAdView.iconView = null }
             view.setImageDrawable(null)
         },
     )

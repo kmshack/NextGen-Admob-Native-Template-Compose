@@ -36,8 +36,10 @@ private val MIN_TOUCH_TARGET = 48.dp
  * @param modifier Compose modifier
  * @param backgroundColor Background color
  * @param textColor Text and chevron color
- * @param showImage Whether to show the ad image between the badge and the headline. When `false`
- *   the image is neither rendered nor downloaded.
+ * @param showImage Whether to show the app icon between the badge and the headline. When `false`
+ *   the icon is neither rendered nor downloaded. Only disable it for ad sources that support
+ *   icon-free layouts: Meta Native Banner requires an app icon to record impressions. Meta's
+ *   full Native format requires a MediaView and cannot use this compact template.
  */
 @Composable
 fun NativeAdHeadlineBox(
@@ -51,10 +53,10 @@ fun NativeAdHeadlineBox(
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (nativeAd == null) return@Box
 
-        val iconImage = rememberNativeAdImage(
-            drawable = nativeAd.primaryImageDrawable().takeIf { showImage },
-            uri = nativeAd.primaryImageUri().takeIf { showImage },
-        )
+        // Register the actual app icon as iconView. The main creative can be a different image,
+        // and a URI-only icon must not be replaced by an already downloaded main-image drawable.
+        val icon = nativeAd.icon.takeIf { showImage }
+        val iconImage = rememberNativeAdImage(drawable = icon?.drawable, uri = icon?.uri)
         NativeAdView(
             nativeAd = nativeAd,
             modifier = Modifier

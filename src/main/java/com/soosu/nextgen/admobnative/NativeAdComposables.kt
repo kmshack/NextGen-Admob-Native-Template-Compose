@@ -13,9 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,6 +55,8 @@ import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView as SdkN
 /** Provides the enclosing [SdkNativeAdView] to the ad asset composables. */
 internal val LocalNativeAdView = staticCompositionLocalOf<SdkNativeAdView?> { null }
 
+internal val LocalNativeAdAssetRegistry = staticCompositionLocalOf<NativeAdAssetRegistry?> { null }
+
 /**
  * Provides a registration callback for the [MediaView] created by [NativeAdMediaView].
  *
@@ -78,6 +82,8 @@ fun NativeAdView(
 ) {
     val nativeAdViewRef = remember { mutableStateOf<SdkNativeAdView?>(null) }
     val mediaViewRef = remember { mutableStateOf<MediaView?>(null) }
+    var assetRevision by remember { mutableIntStateOf(0) }
+    val assetRegistry = remember { NativeAdAssetRegistry { assetRevision++ } }
 
     AndroidView(
         factory = { context ->
@@ -112,6 +118,7 @@ fun NativeAdView(
                     remember { { mediaView -> mediaViewRef.value = mediaView } }
                 CompositionLocalProvider(
                     LocalNativeAdView provides adView,
+                    LocalNativeAdAssetRegistry provides assetRegistry,
                     LocalMediaViewRegister provides registerMediaView,
                     LocalTextStyle provides textStyleWithoutFontPadding(),
                 ) {
@@ -125,9 +132,9 @@ fun NativeAdView(
     val currentNativeAdView = nativeAdViewRef.value
     val currentMediaView = mediaViewRef.value
 
-    DisposableEffect(currentNativeAd, currentNativeAdView, currentMediaView) {
-        // Re-register whenever the ad, the container or the media view changes: the asset views are
-        // created asynchronously by the nested composition, so registration has to be re-attempted.
+    DisposableEffect(currentNativeAd, currentNativeAdView, currentMediaView, assetRevision) {
+        // Asset views are created by nested compositions. A URI-backed icon can arrive after the
+        // first registration, so track all asset changes as well as the container/ad/media view.
         val cancelRegistration = currentNativeAdView?.registerWhenLaidOut(
             currentNativeAd,
             currentMediaView,
@@ -147,7 +154,7 @@ fun NativeAdView(
  */
 @Composable
 fun NativeAdAdvertiserView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("advertiser", modifier = modifier, content = content) { adView, view ->
         adView.advertiserView = view
     }
 }
@@ -160,7 +167,7 @@ fun NativeAdAdvertiserView(modifier: Modifier = Modifier, content: @Composable (
  */
 @Composable
 fun NativeAdBodyView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("body", modifier = modifier, content = content) { adView, view ->
         adView.bodyView = view
     }
 }
@@ -173,7 +180,7 @@ fun NativeAdBodyView(modifier: Modifier = Modifier, content: @Composable () -> U
  */
 @Composable
 fun NativeAdCallToActionView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("callToAction", modifier = modifier, content = content) { adView, view ->
         adView.callToActionView = view
     }
 }
@@ -186,7 +193,7 @@ fun NativeAdCallToActionView(modifier: Modifier = Modifier, content: @Composable
  */
 @Composable
 fun NativeAdHeadlineView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("headline", modifier = modifier, content = content) { adView, view ->
         adView.headlineView = view
     }
 }
@@ -199,7 +206,7 @@ fun NativeAdHeadlineView(modifier: Modifier = Modifier, content: @Composable () 
  */
 @Composable
 fun NativeAdIconView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("icon", modifier = modifier, content = content) { adView, view ->
         adView.iconView = view
     }
 }
@@ -212,7 +219,7 @@ fun NativeAdIconView(modifier: Modifier = Modifier, content: @Composable () -> U
  */
 @Composable
 fun NativeAdPriceView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("price", modifier = modifier, content = content) { adView, view ->
         adView.priceView = view
     }
 }
@@ -225,7 +232,7 @@ fun NativeAdPriceView(modifier: Modifier = Modifier, content: @Composable () -> 
  */
 @Composable
 fun NativeAdStarRatingView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("starRating", modifier = modifier, content = content) { adView, view ->
         adView.starRatingView = view
     }
 }
@@ -238,7 +245,7 @@ fun NativeAdStarRatingView(modifier: Modifier = Modifier, content: @Composable (
  */
 @Composable
 fun NativeAdStoreView(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    NativeAdAssetView(modifier = modifier, content = content) { adView, view ->
+    NativeAdAssetView("store", modifier = modifier, content = content) { adView, view ->
         adView.storeView = view
     }
 }
@@ -332,20 +339,30 @@ fun NativeAdAttribution(
  */
 @Composable
 private fun NativeAdAssetView(
+    name: String,
     modifier: Modifier,
     content: @Composable () -> Unit,
-    register: (SdkNativeAdView, ComposeView) -> Unit,
+    register: (SdkNativeAdView, ComposeView?) -> Unit,
 ) {
     val nativeAdView = LocalNativeAdView.current
         ?: error("Native ad assets must be declared inside a NativeAdView")
+    val assetRegistry = LocalNativeAdAssetRegistry.current
+        ?: error("Native ad assets must be declared inside a NativeAdView")
+    val registerMediaView = LocalMediaViewRegister.current
     AndroidView(
         factory = { context -> ComposeView(context) },
         modifier = modifier,
-        onRelease = { view -> view.disposeComposition() },
+        onRelease = { view ->
+            view.disposeComposition()
+            assetRegistry.unregister(name, view) { register(nativeAdView, null) }
+        },
         update = { view ->
-            register(nativeAdView, view)
+            assetRegistry.register(name, view) { register(nativeAdView, view) }
             view.setContent {
                 CompositionLocalProvider(
+                    LocalNativeAdView provides nativeAdView,
+                    LocalNativeAdAssetRegistry provides assetRegistry,
+                    LocalMediaViewRegister provides registerMediaView,
                     LocalTextStyle provides textStyleWithoutFontPadding(),
                     content = content,
                 )
