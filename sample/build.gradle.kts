@@ -71,28 +71,19 @@ dependencies {
     // Compose
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.13.0")
-
-    // Core
-    implementation("androidx.core:core-ktx:1.19.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("androidx.core:core:1.19.1")
 
     // Google AdMob Next-Gen SDK
     implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.5.0")
 
     // Same networks used by the service apps. Unity's adapter does not bundle its SDK.
-    implementation("com.google.ads.mediation:facebook:6.22.0.1")
     implementation("com.google.ads.mediation:pangle:8.3.0.4.0")
     implementation("com.google.ads.mediation:vungle:7.7.8.1")
     implementation("com.google.ads.mediation:unity:4.21.0.0")
     implementation("com.unity3d.ads:unity-ads:4.21.0")
     implementation("com.google.ads.mediation:inmobi:11.5.0.0")
-
-    // Debug
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
 
 // Next-Gen supplies the compatibility bridge; the legacy SDK duplicates its classes.

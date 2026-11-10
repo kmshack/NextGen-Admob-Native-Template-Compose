@@ -51,7 +51,6 @@ dependencies {
     // Compose
     api("androidx.compose.ui:ui")
     api("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui-tooling-preview")
 
     // Google AdMob Next-Gen SDK
     api("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.5.0")
@@ -66,7 +65,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // Palette for color extraction
-    implementation("androidx.palette:palette-ktx:1.0.0")
+    implementation("androidx.palette:palette:1.0.0")
 
     testImplementation("junit:junit:4.13.2")
 }

@@ -347,7 +347,6 @@ private fun InterstitialScreen(activity: MainActivity) {
 private fun AdapterScreen() {
     val adapters = remember {
         mapOf(
-            "Meta 6.22.0.1" to "com.google.ads.mediation.facebook.FacebookMediationAdapter",
             "Pangle 8.3.0.4.0" to "com.google.ads.mediation.pangle.PangleMediationAdapter",
             "Vungle 7.7.8.1" to "com.google.ads.mediation.vungle.VungleMediationAdapter",
             "Unity 4.21.0.0" to "com.google.ads.mediation.unity.UnityMediationAdapter",
